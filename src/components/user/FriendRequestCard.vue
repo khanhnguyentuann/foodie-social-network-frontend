@@ -2,7 +2,7 @@
 import { useRouter } from 'vue-router';
 import { useUserStore } from '../../store/userStore';
 import { useFriendshipStore } from '../../store/friendshipStore';
-import { ref } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import axios from 'axios';
 import moment from 'moment';
 
@@ -17,7 +17,8 @@ const goToOtherProfile = (userId) => {
 
 const loadFriendRequests = async () => {
     try {
-        const response = await axios.get(`api/friendship/requests`, { params: { userId: userStore.user.id } });
+        const response = await axios.get(`/api/friendship/requests`, { params: { userId: userStore.user.id } });
+
         friendRequests.value = response.data.slice(0, 1).map(request => ({
             ...request,
             timeAgo: getTimeAgo(request.created_at),
@@ -29,7 +30,7 @@ const loadFriendRequests = async () => {
 
 const acceptRequest = async (userId) => {
     try {
-        await axios.post(`api/friendship/accept-request`, { userId1: userStore.user.id, userId2: userId });
+        await axios.post(`/api/friendship/accept-request`, { userId1: userStore.user.id, userId2: userId });
         friendshipStore.setFriendshipStatus('accepted');
         alert('Cả hai đã trở thành bạn bè!');
         friendRequests.value = friendRequests.value.filter(request => request.user_id1 !== userId);
@@ -40,7 +41,7 @@ const acceptRequest = async (userId) => {
 
 const declineRequest = async (userId) => {
     try {
-        await axios.delete(`api/friendship/cancel-request`, { params: { userId1: userStore.user.id, userId2: userId } });
+        await axios.delete(`/api/friendship/cancel-request`, { params: { userId1: userStore.user.id, userId2: userId } });
         friendshipStore.setFriendshipStatus('none');
         alert('Lời mời kết bạn đã được hủy');
         friendRequests.value = friendRequests.value.filter(request => request.user_id1 !== userId);
@@ -73,10 +74,21 @@ const getTimeAgo = (created_at) => {
 const goToFriendRequest = () => {
     router.push({ name: 'FriendRequest' });
 };
+
+watch(() => userStore.user.id, () => {
+    // When userStore.user.id changes, load friend requests
+    loadFriendRequests();
+});
+
+// Load friend requests when component is mounted
+onMounted(() => {
+    loadFriendRequests();
+});
+
 </script>
 
 <template>
-    <div class="container mt-3">
+    <div class="mt-3">
         <div class="row">
             <div class="col-8">
                 <h4>Friend Requests</h4>

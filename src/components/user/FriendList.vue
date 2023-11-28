@@ -1,5 +1,37 @@
-<!-- eslint-disable vue/attributes-order -->
-<!-- eslint-disable vue/first-attribute-linebreak -->
+<script setup>
+import { ref, onMounted, computed } from 'vue';
+import { useUserStore } from '../../store/userStore';
+import axios from 'axios';
+import { useRouter } from 'vue-router';
+
+const userStore = useUserStore();
+const friends = ref([]);
+const searchTerm = ref('');
+const router = useRouter();
+
+const filteredFriends = computed(() => {
+    return friends.value.filter(friend =>
+        friend.name.toLowerCase().includes(searchTerm.value.toLowerCase())
+    );
+});
+
+const clearSearch = () => searchTerm.value = '';
+
+onMounted(async () => {
+    try {
+        const { data } = await axios.get(`api/friendship/friends`, { params: { userId: userStore.user.id } });
+        friends.value = data;
+    } catch (error) {
+        console.error('Failed to fetch friend list', error);
+    }
+});
+
+const goToUserProfile = (id) => {
+    router.push({ name: 'OtherProfile', params: { userId: id } });
+};
+
+</script>
+
 <template>
     <div class="container mt-3">
         <div class="text-center mb-4">
@@ -23,8 +55,9 @@
 
             <li v-for="friend in filteredFriends" :key="friend.id"
                 class="list-group-item d-flex align-items-center shadow-sm rounded" @click="goToUserProfile(friend.id)">
-                <img :src="'http://localhost:3000/' + friend.avatar" alt="Friend's Avatar" class="rounded-circle mr-3"
+                <img :src="friend?.avatar ? '/api/' + friend.avatar : ''" alt="Friend's Avatar" class="rounded-circle mr-3"
                     width="50" height="50">
+
                 <span class="ml-3 font-weight-bold">{{ friend.name }}</span>
             </li>
         </ul>
@@ -34,55 +67,6 @@
         </div>
     </div>
 </template>
-
-<script>
-import { ref, onMounted, computed } from 'vue';
-import { useUserStore } from '../../store/userStore';
-import axios from 'axios';
-import router from '@/router';
-
-const BASE_URL = 'http://localhost:3000';
-
-export default {
-    name: 'FriendList',
-    setup() {
-        const userStore = useUserStore();
-        const friends = ref([]);
-        const searchTerm = ref('');
-
-        const filteredFriends = computed(() => {
-            return friends.value.filter(friend =>
-                friend.name.toLowerCase().includes(searchTerm.value.toLowerCase())
-            );
-        });
-
-        const clearSearch = () => {
-            searchTerm.value = '';
-        };
-
-        onMounted(async () => {
-            try {
-                const { data } = await axios.get(`${BASE_URL}/friendship/friends`, { params: { userId: userStore.user.id } });
-                friends.value = data;
-            } catch (error) {
-                console.error('Failed to fetch friend list', error);
-            }
-        });
-
-        const goToUserProfile = (id) => {
-            router.push('/otherprofile/' + id);
-        };
-
-        return {
-            friends,
-            goToUserProfile,
-            searchTerm,
-            filteredFriends,
-            clearSearch
-        };
-    },
-};
-</script>
 
 <style>
 .list-group-item {

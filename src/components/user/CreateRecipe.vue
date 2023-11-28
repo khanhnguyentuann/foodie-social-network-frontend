@@ -1,6 +1,232 @@
-<!-- eslint-disable vue/require-v-for-key -->
-<!-- eslint-disable vue/first-attribute-linebreak -->
-<!-- eslint-disable vue/attributes-order -->
+<script setup>
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
+import axios from 'axios';
+import { useUserStore } from '../../store/userStore';
+import { useRouter } from 'vue-router';
+
+const recipe = ref({
+    name: '',
+    images: [],
+    preparationTime: '',
+    servingFor: '',
+    cookingTime: '',
+    steps: [''],
+    tags: '',
+    difficulty: 1
+});
+
+const router = useRouter();
+const allIngredients = ref([]);
+const selectedIngredients = ref([]);
+const ingredientAmounts = ref({});
+const ingredientInput = ref('');
+const filteredIngredients = ref([]);
+const formErrors = ref({});
+const isLoading = ref(false);
+const showDropdown = ref(false);
+
+const imagePreviews = computed(() => {
+    return recipe.value.images.map(image => URL.createObjectURL(image));
+});
+
+const fetchIngredients = async () => {
+    try {
+        const response = await axios.get(`/api/recipes/create/list-ingredients`);
+        allIngredients.value = response.data;
+    } catch (error) {
+        console.error("Lỗi khi lấy danh sách nguyên liệu:", error);
+    }
+};
+
+const addStep = () => {
+    recipe.value.steps.push('');
+};
+
+const closeDropdown = (event) => {
+    if (!document.documentElement.contains(event.target)) {
+        showDropdown.value = false;
+    }
+};
+
+const removeStep = (index) => {
+    if (recipe.value.steps.length > 1) {
+        recipe.value.steps.splice(index, 1);
+    }
+};
+
+const toggleDropdown = () => {
+    showDropdown.value = !showDropdown.value;
+};
+
+const onImagesChange = (e) => {
+    const files = Array.from(e.target.files);
+    recipe.value.images = files;
+};
+
+const getCurrentUserId = () => {
+    return useUserStore().user?.id ?? null;
+};
+
+const onIngredientInput = () => {
+    const lowercasedInput = ingredientInput.value.toLowerCase();
+    filteredIngredients.value = allIngredients.value
+        .filter(ingredient => ingredient.name.toLowerCase().includes(lowercasedInput))
+        .sort((a, b) => {
+            const indexA = a.name.toLowerCase().indexOf(lowercasedInput);
+            const indexB = b.name.toLowerCase().indexOf(lowercasedInput);
+            return indexA - indexB;
+        });
+};
+
+const selectIngredient = (ingredient) => {
+    if (!ingredientAmounts.value[ingredient.id]) {
+        ingredientAmounts.value[ingredient.id] = '';
+        selectedIngredients.value.push(ingredient.id);
+    }
+    ingredientInput.value = '';
+    filteredIngredients.value = [];
+};
+
+const removeIngredient = (ingredientId) => {
+    selectedIngredients.value = selectedIngredients.value.filter(id => Number(id) !== Number(ingredientId));
+    if (!selectedIngredients.value.includes(Number(ingredientId))) {
+        delete ingredientAmounts.value[ingredientId];
+    }
+};
+
+const setDifficulty = (starCount) => {
+    recipe.value.difficulty = starCount;
+};
+
+const validateField = (field, value) => {
+    const fieldNames = {
+        name: "Tên công thức",
+        steps: "Các bước chế biến",
+        servingFor: "số người phục vụ",
+        preparationTime: "thời gian chuẩn bị",
+        cookingTime: "thời gian chế biến"
+    };
+
+    if (typeof value === 'string') {
+        switch (field) {
+            case 'name':
+            case 'steps':
+                return value.trim() ? '' : `${fieldNames[field]} không được để trống.`;
+            default:
+                return '';
+        }
+    } else if (typeof value === 'number' || !isNaN(value)) {
+        switch (field) {
+            case 'servingFor':
+            case 'preparationTime':
+            case 'cookingTime':
+                return (value && value > 0) ? '' : `Vui lòng nhập ${fieldNames[field]} hợp lệ.`;
+            default:
+                return '';
+        }
+    } else {
+        return `Kiểu dữ liệu không hợp lệ cho ${fieldNames[field]}.`;
+    }
+};
+
+const validateForm = () => {
+    const validationFields = ['name', 'preparationTime', 'servingFor', 'cookingTime', 'steps'];
+    validationFields.forEach(field => {
+        formErrors.value[field] = validateField(field, recipe.value[field]);
+    });
+
+    // Xác thực cho mảng steps
+    if (recipe.value.steps.length === 0 || !recipe.value.steps.some(step => step.trim() !== '')) {
+        formErrors.value.steps = 'Vui lòng thêm ít nhất một bước chế biến có nội dung.';
+    } else {
+        formErrors.value.steps = '';
+    }
+
+    const hasMissingAmounts = selectedIngredients.value.some(id => {
+        return !ingredientAmounts.value[id] || !ingredientAmounts.value[id].trim();
+    });
+
+    if (!selectedIngredients.value.length) {
+        formErrors.value.ingredient = "Vui lòng chọn ít nhất một nguyên liệu.";
+    } else if (hasMissingAmounts) {
+        formErrors.value.ingredient = "Vui lòng điền số lượng cho tất cả các nguyên liệu đã chọn.";
+    } else {
+        formErrors.value.ingredient = '';
+    }
+
+    return !Object.values(formErrors.value).some(error => error);
+};
+
+const processTags = () => {
+    const tagsArray = (typeof recipe.value.tags === 'string') ? (recipe.value.tags.match(/#[a-zA-Z0-9_]+/g) || []) : [];
+    recipe.value.tags = tagsArray.map(tag => tag.substring(1));
+};
+
+const createFormData = () => {
+    const formData = new FormData();
+    Object.entries(recipe.value).forEach(([key, value]) => {
+        if (key !== 'tags' && key !== 'images' && key !== 'steps') {
+            formData.append(key, value);
+        }
+    });
+
+    formData.append('steps', JSON.stringify(recipe.value.steps));
+
+    recipe.value.images.forEach((image) => {
+        formData.append('images', image);
+    });
+
+    formData.append('tags', JSON.stringify(recipe.value.tags));
+    formData.append('ingredients', JSON.stringify(selectedIngredients.value.filter(id => ingredientAmounts.value[id]).map(id => ({
+        id,
+        amount: ingredientAmounts.value[id]
+    }))));
+    formData.append('user_id', getCurrentUserId());
+
+    return formData;
+};
+
+const prepareFormData = () => {
+    processTags();
+    return createFormData();
+};
+
+const submitRecipe = async () => {
+    if (!validateForm()) {
+        alert('Vui lòng điền đầy đủ và chính xác thông tin.');
+        return;
+    }
+
+    isLoading.value = true;
+
+    try {
+        console.log('Gửi yêu cầu tạo công thức');
+        await axios.post(`/api/recipes/create`, prepareFormData(), {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+
+        router.push({ name: 'RecipeNewsFeed' });
+        alert('Đăng tải công thức thành công!');
+    } catch (error) {
+        console.error('Lỗi khi đăng công thức:', error.response ? error.response.data : error.message);
+        alert('Có lỗi xảy ra khi đăng công thức. Vui lòng thử lại.');
+    } finally {
+        isLoading.value = false;
+    }
+};
+
+onMounted(() => {
+    fetchIngredients();
+    document.addEventListener('click', closeDropdown);
+});
+
+onBeforeUnmount(() => {
+    document.removeEventListener('click', closeDropdown);
+});
+</script>
+
 <template>
     <div class="container mt-3">
         <div class="card" style="background-color: rgba(255, 255, 255, 0.12);">
@@ -23,10 +249,13 @@
 
                                     <ul v-if="showDropdown && filteredIngredients.length"
                                         class="list-group mt-2 dropdown-ingredient-list">
-                                        <li v-for="ingredient in filteredIngredients" @click="selectIngredient(ingredient)"
+
+                                        <li v-for="ingredient in filteredIngredients" :key="ingredient.id"
+                                            @click="selectIngredient(ingredient)"
                                             class="list-group-item list-group-item-action cursor-pointer hover-highlight">
                                             {{ ingredient.name }}
                                         </li>
+
                                     </ul>
                                 </div>
                             </div>
@@ -137,306 +366,4 @@
     </div>
 </template>
 
-<script>
-import axios from 'axios';
-import { useUserStore } from '../../store/userStore';
-
-const BASE_URL = 'http://localhost:3000/recipes';
-
-export default {
-    name: 'CreateRecipe',
-    data() {
-        return {
-            recipe: {
-                name: '',
-                images: [],
-                preparationTime: '',
-                servingFor: '',
-                cookingTime: '',
-                steps: [''],
-                tags: '',
-                difficulty: 1
-            },
-            allIngredients: [],
-            selectedIngredients: [],
-            ingredientAmounts: {},
-            ingredientInput: '',
-            filteredIngredients: [],
-            formErrors: {},
-            isLoading: false,
-            showDropdown: false
-        };
-    },
-    computed: {
-        imagePreviews() {
-            return this.recipe.images.map(image => URL.createObjectURL(image));
-        }
-    },
-    mounted() {
-        this.fetchIngredients();
-        document.addEventListener('click', this.closeDropdown);
-    },
-    beforeDestroy() {
-        document.removeEventListener('click', this.closeDropdown);
-    },
-    methods: {
-        addStep() {
-            this.recipe.steps.push('');
-        },
-        removeStep(index) {
-            if (this.recipe.steps.length > 1) {
-                this.recipe.steps.splice(index, 1);
-            }
-        },
-        toggleDropdown() {
-            this.showDropdown = !this.showDropdown;
-        },
-        closeDropdown(event) {
-            if (!this.$el.contains(event.target)) {
-                this.showDropdown = false;
-            }
-        },
-        onImagesChange(e) {
-            const files = Array.from(e.target.files);
-            this.recipe.images = files;
-        },
-        getCurrentUserId() {
-            return useUserStore().user?.id ?? null;
-        },
-        isSelected(id) {
-            return this.selectedIngredients.includes(id);
-        },
-        onIngredientInput() {
-            const lowercasedInput = this.ingredientInput.toLowerCase();
-            this.filteredIngredients = this.allIngredients
-                .filter(ingredient => ingredient.name.toLowerCase().includes(lowercasedInput))
-                .sort((a, b) => {
-                    // Sắp xếp nguyên liệu dựa trên mức độ khớp với từ khoá tìm kiếm
-                    const indexA = a.name.toLowerCase().indexOf(lowercasedInput);
-                    const indexB = b.name.toLowerCase().indexOf(lowercasedInput);
-                    return indexA - indexB;
-                })
-        },
-        selectIngredient(ingredient) {
-            if (!this.ingredientAmounts[ingredient.id]) {
-                this.ingredientAmounts[ingredient.id] = '';
-                this.selectedIngredients.push(ingredient.id);
-            }
-            this.ingredientInput = '';
-            this.filteredIngredients = [];
-        },
-        removeIngredient(ingredientId) {
-            //  Loại bỏ  một ingredientId cụ thể khỏi mảng this.selectedIngredients
-            // filter trả về một new array chỉ bao gồm ingredients mà ID của chúng không phải là ingredientId cần xóa.
-            this.selectedIngredients = this.selectedIngredients.filter(id => Number(id) !== Number(ingredientId));
-            if (!this.selectedIngredients.includes(Number(ingredientId))) {
-                delete this.ingredientAmounts[ingredientId];
-            }
-        },
-        setDifficulty(starCount) {
-            this.recipe.difficulty = starCount;
-        },
-        async fetchIngredients() {
-            try {
-                const response = await axios.get(`${BASE_URL}/create/list-ingredients`);
-                this.allIngredients = response.data;
-            } catch (error) {
-                console.error("Lỗi khi lấy danh sách nguyên liệu:", error);
-            }
-        },
-
-        validateField(field, value) {
-            const fieldNames = {
-                name: "Tên công thức",
-                steps: "Các bước chế biến",
-                servingFor: "số người phục vụ",
-                preparationTime: "thời gian chuẩn bị",
-                cookingTime: "thời gian chế biến"
-            };
-
-            if (typeof value === 'string') {
-                switch (field) {
-                    case 'name':
-                    case 'steps':
-                        return value.trim() ? '' : `${fieldNames[field]} không được để trống.`;
-                    default:
-                        return '';
-                }
-            } else if (typeof value === 'number' || !isNaN(value)) {
-                switch (field) {
-                    case 'servingFor':
-                    case 'preparationTime':
-                    case 'cookingTime':
-                        return (value && value > 0) ? '' : `Vui lòng nhập ${fieldNames[field]} hợp lệ.`;
-                    default:
-                        return '';
-                }
-            } else {
-                return `Kiểu dữ liệu không hợp lệ cho ${fieldNames[field]}.`;
-            }
-        },
-
-        validateForm() {
-            const validationFields = ['name', 'preparationTime', 'servingFor', 'cookingTime', 'steps'];
-            validationFields.forEach(field => {
-                this.formErrors[field] = this.validateField(field, this.recipe[field]);
-            });
-
-            // Xác thực cho mảng steps
-            if (this.recipe.steps.length === 0 || !this.recipe.steps.some(step => step.trim() !== '')) {
-                this.formErrors.steps = 'Vui lòng thêm ít nhất một bước chế biến có nội dung.';
-            } else {
-                this.formErrors.steps = '';
-            }
-
-            const hasMissingAmounts = this.selectedIngredients.some(id => {
-                return !this.ingredientAmounts[id] || !this.ingredientAmounts[id].trim();
-            });
-
-            if (!this.selectedIngredients.length) {
-                this.formErrors.ingredient = "Vui lòng chọn ít nhất một nguyên liệu.";
-            } else if (hasMissingAmounts) {
-                this.formErrors.ingredient = "Vui lòng điền số lượng cho tất cả các nguyên liệu đã chọn.";
-            } else {
-                this.formErrors.ingredient = '';
-            }
-
-            return !Object.values(this.formErrors).some(error => error);
-        },
-        processTags() {
-            const tagsArray = (typeof this.recipe.tags === 'string') ? (this.recipe.tags.match(/#[a-zA-Z0-9_]+/g) || []) : [];
-            this.recipe.tags = tagsArray.map(tag => tag.substring(1));
-        },
-        createFormData() {
-            const formData = new FormData();
-            Object.entries(this.recipe).forEach(([key, value]) => {
-                if (key !== 'tags' && key !== 'images' && key !== 'steps') {
-                    formData.append(key, value);
-                }
-            });
-
-            formData.append('steps', JSON.stringify(this.recipe.steps));
-
-            this.recipe.images.forEach((image, index) => {
-                formData.append('images', image);
-            });
-
-            formData.append('tags', JSON.stringify(this.recipe.tags));
-            formData.append('ingredients', JSON.stringify(this.selectedIngredients.filter(id => this.ingredientAmounts[id]).map(id => ({
-                id,
-                amount: this.ingredientAmounts[id]
-            }))));
-            formData.append('user_id', this.getCurrentUserId());
-
-            return formData;
-        },
-
-        prepareFormData() {
-            this.processTags();
-            return this.createFormData();
-        },
-        async submitRecipe() {
-            if (!this.validateForm()) {
-                alert('Vui lòng điền đầy đủ và chính xác thông tin.');
-                return;
-            }
-
-            this.isLoading = true;
-
-            try {
-                console.log('Gửi yêu cầu tạo công thức');
-                await axios.post(`${BASE_URL}/create`, this.prepareFormData(), {
-                    headers: {
-                        'Content-Type': 'multipart/form-data'
-                    }
-                });
-                console.log('Đã nhận phản hồi từ máy chủ');
-
-                this.$router.push('/');
-                alert('Đăng tải công thức thành công!');
-            } catch (error) {
-                console.error('Lỗi khi đăng công thức:', error.response ? error.response.data : error.message);
-                alert('Có lỗi xảy ra khi đăng công thức. Vui lòng thử lại.');
-            } finally {
-                this.isLoading = false;
-            }
-        }
-    }
-};
-</script>
-<style scoped>
-.image-overlay {
-    position: absolute;
-    top: 140px;
-    right: 140px;
-    background-color: rgba(0, 0, 0, 0.5);
-    color: white;
-    padding: 5px 10px;
-    border-radius: 50%;
-    font-weight: bold;
-}
-
-input,
-textarea {
-    background-color: rgba(255, 255, 255, 0.12);
-    color: #fff;
-}
-
-.form-group {
-    margin-bottom: 1.5rem;
-}
-
-.btn-block {
-    margin-top: 2rem;
-}
-
-.cursor-pointer {
-    cursor: pointer;
-}
-
-.hover-highlight:hover {
-    background-color: #e9ecef;
-}
-
-i.fas.fa-star,
-i.far.fa-star {
-    font-size: 24px;
-    margin-right: 8px;
-    cursor: pointer;
-}
-
-.star-container {
-    display: flex;
-    align-items: center;
-    min-height: 38px;
-}
-
-i.fas.fa-star {
-    color: gold;
-}
-
-i.far.fa-star {
-    color: lightgray;
-
-}
-
-.ingredient-selector {
-    position: relative;
-    /* Giúp có thể sử dụng `position: absolute` cho danh sách nguyên liệu bên dưới */
-}
-
-.dropdown-ingredient-list {
-    max-height: 250px;
-    /* Giới hạn chiều cao dropdown */
-    overflow-y: auto;
-    position: absolute;
-    /* Đặt DS nguyên liệu nổi lên */
-    top: 100%;
-    left: 0;
-    width: 100%;
-    border: 1px solid #ccc;
-    background-color: #fff;
-    color: #333;
-    z-index: 1000;
-}
-</style>
+<style src="../../assets/CreatePost.css" scoped></style>

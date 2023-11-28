@@ -1,5 +1,5 @@
-<!-- eslint-disable vue/attributes-order -->
-<!-- eslint-disable vue/first-attribute-linebreak -->
+<script setup></script>
+
 <template>
     <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content col-12">
@@ -65,12 +65,6 @@
         </div>
     </div>
 </template>
-
-<script>
-export default {
-    name: "ShareModal",
-}
-</script>
 
 <style>
 .modal-title {

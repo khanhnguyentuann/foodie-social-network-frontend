@@ -3,7 +3,8 @@ import { useUserStore } from '../store/userStore';
 import { useFriendshipStore } from '../store/friendshipStore';
 import $ from 'jquery';
 import 'bootstrap-icons/font/bootstrap-icons.css';
-import FriendRequestCard from '@/components/user/FriendRequestCard.vue';
+import FriendRequestCard from '../components/user/FriendRequestCard.vue';
+import FeedbackForm from '../components/user/FeedbackForm.vue';
 import { computed, ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
@@ -127,7 +128,7 @@ const setScrollContentHeight = () => {
 const fetchUnreadLikeNotifications = async () => {
     try {
         const userId = userStore.user.id;
-        const response = await axios.get('api/notification/unread-like-notifications', { params: { userId } });
+        const response = await axios.get('/api/notification/unread-like-notifications', { params: { userId } });
 
         if (response.data) {
             likeNotifications.value = response.data.map(notification => {
@@ -163,7 +164,7 @@ const fetchUnreadLikeNotifications = async () => {
 const fetchLikeNotificationsCount = async () => {
     try {
         const userId = userStore.user.id;
-        const response = await axios.get('api/notification/like-notifications-count', { params: { userId } });
+        const response = await axios.get('/api/notification/like-notifications-count', { params: { userId } });
 
         if (response.data && response.data.count !== undefined) {
             likeNotificationCount.value = response.data.count;
@@ -176,7 +177,7 @@ const fetchLikeNotificationsCount = async () => {
 
 const markAllAsRead = async () => {
     try {
-        await axios.post('notification/mark-all-as-read', {
+        await axios.post('/api/notification/mark-all-as-read', {
             userId: userStore.user.id
         });
         likeNotificationCount.value = 0;
@@ -217,6 +218,10 @@ const redirectToTitleSearch = (tabName) => {
 const userName = computed(() => userStore.user?.name);
 
 const friendRequestsCount = computed(() => friendshipStore.friendRequestsCount);
+
+const redirectToPostDetails = async (postId) => {
+    router.push({ name: 'PostDetails', params: { id: postId } });
+}
 
 </script>
 
@@ -288,11 +293,13 @@ const friendRequestsCount = computed(() => friendshipStore.friendRequestsCount);
 
                 <div :style="notificationStyle" class="notifications" id="box">
                     <h2>Notifications</h2>
-                    <div type="button" class="btn btn-secondary" style="width:90%; margin-left: 5%;" @click="markAllAsRead">
-                        <i class="bi bi-check2-all"></i> Mark All as Read
+                    <div type="button" class="btn btn-secondary mb-2" style="width:90%; margin-left: 5%;"
+                        @click="markAllAsRead">
+                        <i class="bi bi-check2-all"></i> Mark all as read
                     </div>
                     <div v-if="likeNotifications.length > 0">
-                        <div v-for="notification in likeNotifications" :key="notification.id" class="notifications-item">
+                        <div v-for="notification in likeNotifications" :key="notification.id" class="notifications-item"
+                            @click="redirectToPostDetails(notification.recipe_id)">
                             <img :src="notification.last_sender_avatar ? '/api' + notification.last_sender_avatar : ''"
                                 alt="User Avatar">
                             <div class="text">
@@ -333,21 +340,6 @@ const friendRequestsCount = computed(() => friendshipStore.friendRequestsCount);
                             </a>
                         </li>
                         <li>
-                            <a class="dropdown-item" href="#">
-                                <i class="fas fa-question-circle mr-3"></i> Help & Support
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" href="#">
-                                <i class="fas fa-desktop mr-3"></i> Display & Features
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item" href="#">
-                                <i class="fas fa-comment-dots mr-3"></i> Provide Feedback
-                            </a>
-                        </li>
-                        <li>
                             <a class="dropdown-item" href="#" @click.prevent="logout">
                                 <i class="fas fa-sign-out-alt mr-3"></i> Log Out
                             </a>
@@ -356,8 +348,7 @@ const friendRequestsCount = computed(() => friendshipStore.friendRequestsCount);
                             <hr class="dropdown-divider">
                         </li>
                         <li class="container">
-                            <p class="mb-0 text-muted small">Privacy . Terms . Advertising . Ad Choices . Cookies . Learn
-                                more.</p>
+                            <p class="mb-0 text-muted small">Privacy . Terms . Ads . Ad Choices . Cookies . More.</p>
                         </li>
 
                     </div>
@@ -431,7 +422,7 @@ const friendRequestsCount = computed(() => friendshipStore.friendRequestsCount);
                 </div>
             </div>
 
-            <div class="app-layout-page col-9 col-sm-9 col-lg-6">
+            <div class="app-layout-page col-6 col-sm-9 col-lg-6">
                 <div class="page-content" ref="pagecontentBox">
                     <router-view />
                 </div>
@@ -440,11 +431,12 @@ const friendRequestsCount = computed(() => friendshipStore.friendRequestsCount);
                 </div>
             </div>
 
-            <div cclass="app-layout-right-sidebar col-3 d-none d-lg-block col-lg-3">
-                <div class="rightsidebar-content" ref="rightsidebarcontentBox">
+            <div cclass="app-layout-right-sidebar col-4 col-lg-4">
+                <div class="rightsidebar-content ml-5" ref="rightsidebarcontentBox">
                     <FriendRequestCard />
                     <hr class="my-4 hr-thick">
                 </div>
+                <FeedbackForm />
             </div>
         </div>
     </div>

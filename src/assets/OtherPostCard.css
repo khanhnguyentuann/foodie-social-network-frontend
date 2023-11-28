@@ -1,0 +1,70 @@
+.user-avatar {
+    width: 48px;
+    height: 48px;
+    margin-right: 10px;
+    border-radius: 50%;
+}
+
+.click {
+    cursor: pointer;
+}
+
+.btn-hover {
+    color: #fff;
+}
+
+.btn-hover:hover {
+    background-color: rgba(112, 120, 131, 0.15);
+}
+
+
+.recipe-card {
+    margin-top: 1px;
+    background-color: rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    padding: 20px;
+    border: 1px solid #e5e5e5;
+    box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.05);
+}
+
+.recipe-image {
+    width: 100%;
+    max-height: 400px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.star-container {
+    display: flex;
+    align-items: center;
+    min-height: 38px;
+}
+
+i.fas.fa-star {
+    color: gold;
+}
+
+i.far.fa-star {
+    color: lightgray;
+}
+
+/* Reply comment */
+.reply-input textarea {
+    width: 100%;
+    margin-top: 10px;
+}
+
+.reply {
+    display: flex;
+    align-items: flex-start;
+}
+
+.reply img {
+    margin-right: 10px;
+}
+
+.card-body .col-11.offset-1 {
+    padding-left: 20px;
+    border-left: 1px solid #eee;
+}

@@ -1,5 +1,65 @@
-<!-- eslint-disable vue/first-attribute-linebreak -->
-<!-- eslint-disable vue/attributes-order -->
+<script setup>
+import { ref, onMounted, watch } from 'vue';
+import axios from 'axios';
+import { useRouter } from 'vue-router';
+
+const tag = ref('');
+const recipes = ref([]);
+const searchAttempted = ref(false);
+const allTags = ref([]);
+const selectedTags = ref([]);
+const router = useRouter();
+
+const selectTag = (tagItem) => {
+    const index = selectedTags.value.indexOf(tagItem);
+    if (index === -1) {
+        selectedTags.value.push(tagItem);
+    } else {
+        selectedTags.value.splice(index, 1);
+    }
+    tag.value = selectedTags.value.join(', ');
+};
+
+const clearSearch = () => {
+    tag.value = '';
+    selectedTags.value = [];
+};
+
+onMounted(async () => {
+    try {
+        const response = await axios.get('/api/search/getAllTags');
+        allTags.value = response.data.tags;
+    } catch (error) {
+        console.error('An error occurred while fetching tags:', error);
+    }
+});
+
+watch(tag, (newVal) => {
+    if (newVal === '') {
+        searchAttempted.value = false;
+        recipes.value = [];
+    }
+});
+
+const searchByTag = async () => {
+    searchAttempted.value = true;
+    try {
+        const response = await axios.get('/api/search/searchByTag', {
+            params: { tag: tag.value }
+        });
+        recipes.value = response.data.recipes;
+        router.push({ name: 'TagSearch', query: { tag: tag.value } });
+    } catch (error) {
+        console.error('An error occurred while fetching data:', error);
+    }
+};
+
+const redirectToPostDetails = async (postId) => {
+    router.push({ name: 'PostDetails', params: { id: postId } });
+}
+
+</script>
+
 <template>
     <div class="container mt-3">
         <div class="form">
@@ -14,12 +74,10 @@
             </div>
         </div>
 
-        <!-- Display message for the search criteria -->
         <div v-if="searchAttempted" class="mt-3">
             <p>Search results for the hashtag: "{{ tag }}"</p>
         </div>
 
-        <!-- Display popular hashtags when no search is made -->
         <div v-if="!searchAttempted">
             <h3 class="display-5">Popular Hashtags:</h3>
             <div class="d-flex flex-wrap">
@@ -35,8 +93,9 @@
             <div class="col-3 mt-3" v-for="recipe in recipes" :key="recipe.id">
                 <div class="card h-100 rounded shadow-sm position-relative"
                     style="background-color: rgba(255, 255, 255, 0.12);">
-                    <router-link :to="'/postdetails/' + recipe.id" class="text-decoration-none text-dark">
-                        <img :src="apiURL(recipe.firstImage)" class="card-img-top rounded-top img-fluid" alt="Post Image">
+                    <a class="text-decoration-none text-dark" @click="redirectToPostDetails(recipe.id)">
+                        <img :src="recipe?.firstImage ? '/api/' + recipe.firstImage : ''"
+                            class="card-img-top rounded-top img-fluid" alt="Post Image">
                         <div class="card-body text-light">
                             <h5 class="card-title" style="font-weight: bold;">{{ recipe.name }}</h5>
                             <div class="row">
@@ -46,16 +105,10 @@
                                     recipe.servingFor }} people</p>
                             </div>
                         </div>
-                    </router-link>
+                    </a>
                 </div>
             </div>
         </div>
-
-
-        <!-- <router-link :to="'/favorites/' + recipe.id" class="text-decoration-none text-dark">
-
-        </router-link> -->
-
 
         <!-- Message when no results are found -->
         <div v-else-if="searchAttempted" class="alert alert-warning mt-3" role="alert">
@@ -63,91 +116,6 @@
         </div>
     </div>
 </template>
-
-<script>
-import { ref, onMounted, watch } from 'vue';
-import axios from 'axios';
-import { useRouter } from 'vue-router';
-
-const ROUTES = {
-    searchByTag: `search/searchByTag`,
-    getAllTags: `search/getAllTags`,
-};
-
-export default {
-    name: 'TagSearch',
-    setup() {
-        const tag = ref('');
-        const recipes = ref([]);
-        const searchAttempted = ref(false);
-        const allTags = ref([]);
-        const selectedTags = ref([]);
-        const router = useRouter();
-
-        const apiURL = (relativePath) => {
-            return window.baseURL + '/' + relativePath;
-        };
-
-        const selectTag = (tagItem) => {
-            const index = selectedTags.value.indexOf(tagItem);
-            if (index === -1) {
-                selectedTags.value.push(tagItem);
-            } else {
-                selectedTags.value.splice(index, 1);
-            }
-            tag.value = selectedTags.value.join(', ');
-        };
-
-        const clearSearch = () => {
-            tag.value = '';
-            selectedTags.value = []; // Xoá các tag đã được chọn
-        };
-
-
-        onMounted(async () => {
-            try {
-                const { data } = await axios.get(apiURL(ROUTES.getAllTags));
-                allTags.value = data.tags;
-            } catch (error) {
-                console.error('An error occurred while fetching tags:', error);
-            }
-        });
-
-        // Thêm cảnh quan sát cho biến 'tag'
-        watch(tag, (newVal) => {
-            if (newVal === '') {
-                searchAttempted.value = false;
-                recipes.value = []; // Xoá các kết quả tìm kiếm
-            }
-        });
-
-        const searchByTag = async () => {
-            searchAttempted.value = true;
-            try {
-                const { data } = await axios.get(apiURL(ROUTES.searchByTag), {
-                    params: { tag: tag.value }
-                });
-                recipes.value = data.recipes;
-                router.push({ path: '/tagsearch', query: { tag: tag.value } });
-            } catch (error) {
-                console.error('An error occurred while fetching data:', error);
-            }
-        };
-
-        return {
-            tag,
-            recipes,
-            selectedTags,
-            searchAttempted,
-            searchByTag,
-            apiURL,
-            selectTag,
-            allTags,
-            clearSearch
-        };
-    }
-};
-</script>
 
 <style scoped>
 /* Clearserach ---------- */

@@ -1,0 +1,74 @@
+.image-overlay {
+    position: absolute;
+    top: 140px;
+    right: 140px;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 50%;
+    font-weight: bold;
+}
+
+input,
+textarea {
+    background-color: rgba(255, 255, 255, 0.12);
+    color: #fff;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.btn-block {
+    margin-top: 2rem;
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+.hover-highlight:hover {
+    background-color: #e9ecef;
+}
+
+i.fas.fa-star,
+i.far.fa-star {
+    font-size: 24px;
+    margin-right: 8px;
+    cursor: pointer;
+}
+
+.star-container {
+    display: flex;
+    align-items: center;
+    min-height: 38px;
+}
+
+i.fas.fa-star {
+    color: gold;
+}
+
+i.far.fa-star {
+    color: lightgray;
+
+}
+
+.ingredient-selector {
+    position: relative;
+    /* Giúp có thể sử dụng `position: absolute` cho danh sách nguyên liệu bên dưới */
+}
+
+.dropdown-ingredient-list {
+    max-height: 250px;
+    /* Giới hạn chiều cao dropdown */
+    overflow-y: auto;
+    position: absolute;
+    /* Đặt DS nguyên liệu nổi lên */
+    top: 100%;
+    left: 0;
+    width: 100%;
+    border: 1px solid #ccc;
+    background-color: #fff;
+    color: #333;
+    z-index: 1000;
+}

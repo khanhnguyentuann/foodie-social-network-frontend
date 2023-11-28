@@ -105,11 +105,11 @@ const toggleReplyComments = async (comment) => {
 const toggleLike = async (recipe) => {
     try {
         if (recipe.isLiked) {
-            await axios.delete('api/newsfeed/unlike', { data: { sender_id: userStore.user.id } });
+            await axios.delete(`api/newsfeed/unlike/${recipe.id}`, { data: { sender_id: userStore.user.id } });
             recipe.isLiked = false;
             recipe.likesCount -= 1;
         } else {
-            await axios.post('api/newsfeed/like', { sender_id: userStore.user.id });
+            await axios.post(`api/newsfeed/like/${recipe.id}`, { sender_id: userStore.user.id });
             recipe.isLiked = true;
             recipe.likesCount += 1;
         }
@@ -168,10 +168,14 @@ const addReply = async (recipeId, commentId) => {
 
 const deleteRecipe = async (recipeId) => {
     try {
-        await axios.delete(`api/newsfeed/delete/${recipeId}`);
-        recipes.value = recipes.value.filter(recipe => recipe.id !== recipeId);
+        const userConfirmed = confirm("Are you sure you want to delete this recipe?");
+
+        if (userConfirmed) {
+            await axios.delete(`api/newsfeed/delete/${recipeId}`);
+            recipes.value = recipes.value.filter(recipe => recipe.id !== recipeId);
+        }
     } catch (error) {
-        console.error('Lỗi khi xoá bài viết:', error);
+        console.error('Lỗi khi xóa bài viết:', error);
     }
 };
 
@@ -405,12 +409,14 @@ const goToUserProfile = (userId) => {
                     <div class="col">
                         <div class="d-flex flex-start">
                             <img :src="comment?.userAvatar ? '/api' + comment.userAvatar : ''" alt="User Avatar" width="40"
-                                height="40" class="rounded-circle shadow-1-strong me-3 mr-2">
+                                height="40" class="rounded-circle shadow-1-strong me-3 mr-2"
+                                @click="goToUserProfile(comment.userId)" style="cursor: pointer;">
 
                             <div class="flex-grow-1">
                                 <p class="mb-1">
-                                    <strong>{{ comment.userName }}</strong> - <span class="small">{{
-                                        formatTime(comment.created_at) }}</span>
+                                    <strong @click="goToUserProfile(comment.userId)" style="cursor: pointer;">
+                                        {{ comment.userName }}</strong> - <span class="small">
+                                        {{ formatTime(comment.created_at) }}</span>
                                 </p>
                                 <p class="small mb-2">{{ comment.content }}</p>
                             </div>
@@ -441,12 +447,15 @@ const goToUserProfile = (userId) => {
                     <div v-if="comment.replies && comment.replies.length" class="col-11 offset-1">
                         <div v-for="reply in comment.replies" :key="reply.id" class="reply mt-2">
                             <img :src="reply?.userAvatar ? '/api' + reply.userAvatar : ''" alt="User Avatar" width="30"
-                                height="30" class="rounded-circle shadow-1-strong me-3">
+                                height="30" class="rounded-circle shadow-1-strong me-3"
+                                @click="goToUserProfile(reply?.userId)" style="cursor: pointer;">
 
                             <div class="flex-grow-1">
                                 <p class="mb-1">
-                                    <strong>{{ reply.userName }}</strong> - <span class="small">{{
-                                        formatTime(reply.created_at) }}</span>
+                                    <strong @click="goToUserProfile(reply?.userId)" style="cursor: pointer;">
+                                        {{ reply.userName }}
+                                    </strong> - <span class="small">
+                                        {{ formatTime(reply.created_at) }}</span>
                                 </p>
                                 <p class="small mb-0">{{ reply.content }}</p>
                             </div>

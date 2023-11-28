@@ -1,3 +1,69 @@
+<script setup>
+import { useRouter } from 'vue-router';
+import { useUserStore } from '../../store/userStore';
+import { useFriendshipStore } from '../../store/friendshipStore';
+import { ref, onMounted, watch } from 'vue';
+import axios from 'axios';
+import moment from 'moment';
+
+const userStore = useUserStore();
+const friendshipStore = useFriendshipStore();
+const friendRequests = ref([]);
+const router = useRouter();
+const sortOrder = ref('newest');
+
+const goToOtherProfile = (userId) => {
+    router.push({ name: 'OtherProfile', params: { userId } });
+};
+
+const sortFriendRequests = () => {
+    if (sortOrder.value === 'newest') {
+        friendRequests.value.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    } else {
+        friendRequests.value.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    }
+};
+
+watch(() => sortOrder.value, sortFriendRequests);
+
+onMounted(async () => {
+    try {
+        const { data } = await axios.get(`/api/friendship/requests`, { params: { userId: userStore.user.id } });
+        friendRequests.value = data.map(request => ({
+            ...request,
+            timeAgo: moment(request.created_at).fromNow(),
+        }));
+
+        sortFriendRequests();
+    } catch (error) {
+        console.error('Failed to fetch friend requests', error);
+    }
+});
+
+async function acceptRequest(userId) {
+    try {
+        await axios.post(`/api/friendship/accept-request`, { userId1: userStore.user.id, userId2: userId });
+        friendshipStore.setFriendshipStatus('accepted');
+        alert('Cả hai đã trở thành bạn bè!');
+        friendRequests.value = friendRequests.value.filter(request => request.user_id1 !== userId);
+    } catch (error) {
+        console.error('Failed to accept friend request', error);
+    }
+}
+
+
+async function declineRequest(userId) {
+    try {
+        await axios.delete(`/api/friendship/cancel-request`, { params: { userId1: userStore.user.id, userId2: userId } });
+        friendshipStore.setFriendshipStatus('none');
+        alert('Đã hủy yêu cầu kết bạn');
+        friendRequests.value = friendRequests.value.filter(request => request.user_id1 !== userId);
+    } catch (error) {
+        console.error('Failed to cancel friend request', error);
+    }
+}
+</script>
+
 <template>
     <div class="container mt-3">
         <div class="row">
@@ -20,8 +86,8 @@
             <li v-else v-for="request in friendRequests" :key="request.user_id1"
                 style="background-color: rgba(255, 255, 255, 0.12);"
                 class="list-group-item d-flex justify-content-between align-items-center">
-                <div @click="goToOtherProfile(request.user_id1)">
-                    <img :src="'http://localhost:3000/' + request.avatar" alt="User Avatar" width="50" height="50"
+                <div @click="goToOtherProfile(request.user_id1)" style="cursor: pointer;">
+                    <img :src="request?.avatar ? '/api/' + request.avatar : ''" alt="User Avatar" width="50" height="50"
                         class="mr-3 rounded-circle">
                     <span class="ml-1 font-weight-bold">
                         {{ request.name }}
@@ -36,94 +102,3 @@
         </ul>
     </div>
 </template>
-
-<script>
-import { useRouter } from 'vue-router';
-import { useUserStore } from '../../store/userStore';
-import { useFriendshipStore } from '../../store/friendshipStore';
-import { ref, onMounted, watch } from 'vue';
-
-import axios from 'axios';
-import moment from 'moment';
-
-const BASE_URL = 'http://localhost:3000';
-
-export default {
-    name: 'FriendRequest',
-    setup() {
-        const userStore = useUserStore();
-        const friendshipStore = useFriendshipStore();
-        const friendRequests = ref([]);
-        const router = useRouter();
-        const sortOrder = ref('newest');
-
-        const goToOtherProfile = (userId) => {
-            router.push(`/otherprofile/${userId}`);
-        };
-
-        const sortFriendRequests = () => {
-            if (sortOrder.value === 'newest') {
-                friendRequests.value.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-            } else {
-                friendRequests.value.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-            }
-        };
-
-
-
-        watch(() => sortOrder.value, sortFriendRequests);
-
-        onMounted(async () => {
-            try {
-                const { data } = await axios.get(`${BASE_URL}/friendship/requests`, { params: { userId: userStore.user.id } });
-                friendRequests.value = data.map(request => ({
-                    ...request,
-                    timeAgo: moment(request.created_at).fromNow(),
-                }));
-
-                sortFriendRequests();
-            } catch (error) {
-                console.error('Failed to fetch friend requests', error);
-            }
-        });
-
-        async function acceptRequest(userId) {
-            try {
-                await axios.post(`${BASE_URL}/friendship/accept-request`, { userId1: userStore.user.id, userId2: userId });
-                friendshipStore.setFriendshipStatus('accepted');
-                alert('Cả hai đã trở thành bạn bè!');
-                friendRequests.value = friendRequests.value.filter(request => request.user_id1 !== userId);
-            } catch (error) {
-                console.error('Failed to accept friend request', error);
-            }
-        }
-
-
-        async function declineRequest(userId) {
-            try {
-                await axios.delete(`${BASE_URL}/friendship/cancel-request`, { params: { userId1: userStore.user.id, userId2: userId } });
-                friendshipStore.setFriendshipStatus('none');
-                alert('Đã hủy yêu cầu kết bạn');
-                friendRequests.value = friendRequests.value.filter(request => request.user_id1 !== userId);
-            } catch (error) {
-                console.error('Failed to cancel friend request', error);
-            }
-        }
-
-        return {
-            friendRequests,
-            acceptRequest,
-            declineRequest,
-            goToOtherProfile,
-            sortFriendRequests,
-            sortOrder
-        };
-    },
-};
-</script>
-
-<style scoped>
-.click {
-    cursor: pointer;
-}
-</style>

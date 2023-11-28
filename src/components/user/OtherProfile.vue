@@ -1,6 +1,52 @@
-<!-- eslint-disable vue/first-attribute-linebreak -->
-<!-- eslint-disable vue/attributes-order -->
-<!-- eslint-disable vue/attribute-hyphenation -->
+<script setup>
+import { ref, onMounted, watch, computed } from 'vue';
+import axios from 'axios';
+import { useUserStore } from '../../store/userStore';
+import { useFriendshipStore } from '../../store/friendshipStore';
+import OthersInfoCard from './OthersInfoCard.vue';
+import OthersFriendCard from './OthersFriendCard.vue';
+import OthersPostCard from './OthersPostCard.vue';
+
+const props = defineProps({
+    userId: {
+        type: String,
+        required: true,
+    },
+});
+
+const userStore = useUserStore();
+const friendshipStore = useFriendshipStore();
+const userRecipes = ref([]);
+const user = ref(null);
+
+const fetchData = async () => {
+    try {
+        const { data } = await axios.get(`/api/otherprofile/${props.userId}`);
+        user.value = data.user;
+        userRecipes.value = data.recipes;
+    } catch (error) {
+        handleErrors('Lỗi khi tải thông tin người dùng:', error);
+    }
+
+    try {
+        await friendshipStore.fetchFriendshipStatus(userStore.user.id, props.userId);
+    } catch (error) {
+        handleErrors('Failed to fetch friendship status', error);
+    }
+};
+
+watch(() => props.userId, fetchData);
+onMounted(fetchData);
+
+function handleErrors(message, error) {
+    console.error(message, error);
+}
+
+const userAvatarComputed = computed(() => user.value?.avatar ? `/api/${user.value.avatar.replace(/\\/g, '/')}` : '');
+const userNameComputed = computed(() => user.value?.name || 'Guest');
+const userStoreToken = computed(() => userStore.token);
+</script>
+
 <template>
     <div class="user-profile container mt-3">
         <OthersInfoCard :userId="userId" :userAvatar="userAvatarComputed" :userName="userNameComputed" />
@@ -18,7 +64,7 @@
 
         <div class="tab-content" id="profileTabsContent">
             <div class="tab-pane fade show active" id="posts" role="tabpanel" aria-labelledby="posts-tab">
-                <OthersPostCard :userId="userId" :userRecipes="userRecipes" :token="userStoreToken" />
+                <OthersPostCard v-if="userRecipes" :userId="userId" :userRecipes="userRecipes" :token="userStoreToken" />
             </div>
 
             <div class="tab-pane fade" id="friends" role="tabpanel" aria-labelledby="friends-tab">
@@ -27,70 +73,6 @@
         </div>
     </div>
 </template>
-
-<script>
-import OthersInfoCard from './OthersInfoCard.vue';
-import OthersFriendCard from './OthersFriendCard.vue';
-import OthersPostCard from './OthersPostCard.vue';
-import { useUserStore } from '../../store/userStore';
-import { useFriendshipStore } from '../../store/friendshipStore';
-import { computed, ref, onMounted, watch } from 'vue';
-import axios from 'axios';
-
-const BASE_URL = 'http://localhost:3000';
-
-export default {
-    name: 'OtherProfile',
-    components: {
-        OthersInfoCard,
-        OthersFriendCard,
-        OthersPostCard
-    },
-    props: {
-        userId: {
-            type: String,
-            required: true,
-        },
-    },
-    setup(props) {
-        const userStore = useUserStore();
-        const friendshipStore = useFriendshipStore();
-        const userRecipes = ref([]);
-        const user = ref(null);
-
-        const fetchData = async () => {
-            try {
-                const { data } = await axios.get(`${BASE_URL}/otherprofile/${props.userId}`);
-                user.value = data.user;
-                userRecipes.value = data.recipes;
-            } catch (error) {
-                handleErrors('Lỗi khi tải thông tin người dùng:', error);
-            }
-
-            try {
-                await friendshipStore.fetchFriendshipStatus(userStore.user.id, props.userId);
-            } catch (error) {
-                handleErrors('Failed to fetch friendship status', error);
-            }
-        };
-
-        watch(() => props.userId, fetchData);
-
-        onMounted(fetchData);
-
-        function handleErrors(message, error) {
-            console.error(message, error);
-        }
-
-        return {
-            userAvatarComputed: computed(() => user.value && user.value.avatar ? `${BASE_URL}/${user.value.avatar.replace(/\\/g, '/')}` : ''),
-            userNameComputed: computed(() => user?.value?.name || 'Guest'),
-            userRecipes,
-            userStoreToken: computed(() => userStore.token),
-        };
-    },
-};
-</script>
 
 <style scoped>
 .user-profile {

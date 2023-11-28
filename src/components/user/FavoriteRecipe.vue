@@ -36,6 +36,7 @@ const confirmDelete = async (recipeId) => {
 };
 
 onMounted(fetchSavedRecipes);
+
 </script>
 
 <template>

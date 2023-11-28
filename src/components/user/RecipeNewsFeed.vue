@@ -6,7 +6,6 @@ import { useRouter } from 'vue-router';
 
 const userStore = useUserStore();
 const router = useRouter();
-
 const userName = computed(() => userStore.user?.name);
 
 const goToCreateRecipe = () => {

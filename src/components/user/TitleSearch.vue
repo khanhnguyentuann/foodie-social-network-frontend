@@ -1,5 +1,75 @@
-<!-- eslint-disable vue/first-attribute-linebreak -->
-<!-- eslint-disable vue/attributes-order -->
+<script setup>
+import { ref, watch, onMounted } from 'vue';
+import axios from 'axios';
+import { useRouter } from 'vue-router';
+
+const title = ref('');
+const recipes = ref([]);
+const searchAttempted = ref(false);
+const router = useRouter();
+const searchHistory = ref([]);
+
+onMounted(() => {
+    searchHistory.value = JSON.parse(localStorage.getItem('searchHistory')) || [];
+    const titleFromQuery = router.currentRoute.value.query.title;
+    if (titleFromQuery) {
+        title.value = titleFromQuery;
+        searchByTitle();
+    }
+});
+
+const updateSearchHistory = (newSearch) => {
+    let searches = JSON.parse(localStorage.getItem('searchHistory')) || [];
+    if (!searches.includes(newSearch)) {
+        searches.unshift(newSearch);
+        searches = searches.slice(0, 5);
+        localStorage.setItem('searchHistory', JSON.stringify(searches));
+        searchHistory.value = searches;
+    }
+};
+
+const removeFromSearchHistory = (index) => {
+    let searches = searchHistory.value;
+    searches.splice(index, 1);
+    localStorage.setItem('searchHistory', JSON.stringify(searches));
+    searchHistory.value = searches;
+};
+
+const searchByTitle = async () => {
+    searchAttempted.value = true;
+    updateSearchHistory(title.value);
+    try {
+        const response = await axios.get(`/api/search/searchByTitle`, {
+            params: { title: title.value }
+        });
+        recipes.value = response.data.recipes;
+        router.push({ path: '/titlesearch', query: { title: title.value } });
+    } catch (error) {
+        console.error('Error while fetching data:', error);
+    }
+};
+
+const clearSearch = () => title.value = '';
+
+watch(title, (newVal) => {
+    if (newVal === '') {
+        searchAttempted.value = false;
+        recipes.value = [];
+    }
+});
+
+watch(() => router.currentRoute.value.query.title, (newTitle) => {
+    if (newTitle !== undefined && newTitle !== title.value) {
+        title.value = newTitle;
+        searchByTitle();
+    }
+});
+
+const redirectToPostDetails = async (postId) => {
+    router.push({ name: 'PostDetails', params: { id: postId } });
+}
+</script>
+
 <template>
     <div class="container mt-3">
         <div class="form">
@@ -37,8 +107,9 @@
             <div class="col-3 mt-3" v-for="recipe in recipes" :key="recipe.id">
                 <div class="card h-100 rounded shadow-sm position-relative"
                     style="background-color: rgba(255, 255, 255, 0.12);">
-                    <router-link :to="'/postdetails/' + recipe.id" class="text-decoration-none text-dark">
-                        <img :src="apiURL(recipe.firstImage)" class="card-img-top rounded-top img-fluid" alt="Post Image">
+                    <a class="text-decoration-none text-dark" @click="redirectToPostDetails(recipe.id)">
+                        <img :src="recipe?.firstImage ? '/api/' + recipe.firstImage : ''"
+                            class="card-img-top rounded-top img-fluid" alt="Post Image">
                         <div class="card-body text-light">
                             <h5 class="card-title" style="font-weight: bold;">{{ recipe.name }}</h5>
                             <div class="row">
@@ -48,7 +119,7 @@
                                     recipe.servingFor }} people</p>
                             </div>
                         </div>
-                    </router-link>
+                    </a>
                 </div>
             </div>
         </div>
@@ -59,103 +130,6 @@
         </div>
     </div>
 </template>
-
-<script>
-import { ref, watch, onMounted } from 'vue';
-import axios from 'axios';
-import { useRouter } from 'vue-router';
-
-const ROUTES = {
-    searchByTitle: `search/searchByTitle`,
-};
-
-export default {
-    name: "TitleSearch",
-    setup() {
-        const title = ref('');
-        const recipes = ref([]);
-        const searchAttempted = ref(false);
-        const router = useRouter();
-        const searchHistory = ref([]);
-
-        const apiURL = (relativePath) => {
-            return window.baseURL + '/' + relativePath;
-        };
-
-        onMounted(() => {
-            searchHistory.value = JSON.parse(localStorage.getItem('searchHistory')) || [];
-            const titleFromQuery = router.currentRoute.value.query.title;
-            if (titleFromQuery) {
-                title.value = titleFromQuery;
-                searchByTitle();
-            }
-        });
-
-        const updateSearchHistory = (newSearch) => {
-            let searches = JSON.parse(localStorage.getItem('searchHistory')) || [];
-            if (!searches.includes(newSearch)) {
-                searches.unshift(newSearch); // Thêm vào đầu danh sách
-                searches = searches.slice(0, 5); // Giữ chỉ 5 mục tìm kiếm gần đây
-                localStorage.setItem('searchHistory', JSON.stringify(searches)); // Cập nhật localStorage
-                searchHistory.value = searches; // Cập nhật trạng thái reactive
-            }
-        };
-
-        const removeFromSearchHistory = (index) => {
-            let searches = searchHistory.value;
-            searches.splice(index, 1); // Xoá item ở vị trí index
-            localStorage.setItem('searchHistory', JSON.stringify(searches)); // Cập nhật localStorage
-            searchHistory.value = searches; // Cập nhật trạng thái reactive
-        };
-
-
-        const searchByTitle = async () => {
-            searchAttempted.value = true;
-            updateSearchHistory(title.value);
-            try {
-                const response = await axios.get(apiURL(ROUTES.searchByTitle), {
-                    params: { title: title.value }
-                });
-                recipes.value = response.data.recipes;
-
-                // Cập nhật URL sau khi tìm kiếm
-                router.push({ path: '/titlesearch', query: { title: title.value } });
-            } catch (error) {
-                console.error('Error while fetching data:', error);
-            }
-        };
-
-        const clearSearch = () => {
-            title.value = '';
-        };
-
-        watch(title, (newVal) => {
-            if (newVal === '') {
-                searchAttempted.value = false;
-                recipes.value = []; // Xoá các kết quả tìm kiếm
-            }
-        });
-
-        watch(() => router.currentRoute.value.query.title, (newTitle) => {
-            if (newTitle !== undefined && newTitle !== title.value) {
-                title.value = newTitle;
-                searchByTitle();
-            }
-        });
-
-        return {
-            apiURL,
-            searchByTitle,
-            searchAttempted,
-            clearSearch,
-            title,
-            recipes,
-            searchHistory,
-            removeFromSearchHistory
-        };
-    }
-}
-</script>
 
 <style scoped>
 /* Clearserach ---------- */

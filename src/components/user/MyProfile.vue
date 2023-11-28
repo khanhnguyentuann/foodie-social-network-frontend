@@ -1,5 +1,9 @@
-<!-- eslint-disable vue/attributes-order -->
-<!-- eslint-disable vue/first-attribute-linebreak -->
+<script setup>
+import MyInfoCard from './MyInfoCard.vue';
+import MyPostCard from './MyPostCard.vue';
+import MyFriendCard from './MyFriendCard.vue';
+</script>
+
 <template>
     <div class="user-profile container mt-3">
         <MyInfoCard />
@@ -23,22 +27,6 @@
         </div>
     </div>
 </template>
-
-<script>
-import MyInfoCard from './MyInfoCard.vue';
-import MyPostCard from './MyPostCard.vue';
-import MyFriendCard from './MyFriendCard.vue';
-
-export default {
-    name: 'MyProfile',
-    components: {
-        MyInfoCard,
-        MyPostCard,
-        MyFriendCard
-    },
-};
-</script>
-
 
 <style scoped>
 .user-profile {

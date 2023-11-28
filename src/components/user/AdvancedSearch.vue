@@ -1,5 +1,59 @@
-<!-- eslint-disable vue/attributes-order -->
-<!-- eslint-disable vue/first-attribute-linebreak -->
+<script setup>
+import { ref, computed, onMounted } from 'vue';
+import axios from 'axios';
+import { useRouter } from 'vue-router';
+
+const ingredients = ref([]);
+const ingredientQuery = ref('');
+const selectedIngredients = ref([]);
+const recipes = ref([]);
+const hasSearched = ref(false);
+const searchedIngredients = ref('');
+const router = useRouter();
+
+const filteredIngredients = computed(() => {
+    return ingredients.value
+        .filter(ing => ing.name.toLowerCase().includes(ingredientQuery.value.toLowerCase()))
+        .slice(0, 24);
+});
+
+const fetchIngredients = async () => {
+    try {
+        const response = await axios.get('/api/search/getAllIngredients');
+        ingredients.value = response.data.ingredients;
+    } catch (error) {
+        console.error("Error fetching ingredients:", error);
+    }
+};
+
+const searchRecipes = async () => {
+    const ingredientsString = selectedIngredients.value.join(',');
+    searchedIngredients.value = ingredientsString;
+    try {
+        const response = await axios.get(`/api/search/searchByIngredients?ingredients=${ingredientsString}`);
+        recipes.value = response.data.recipes;
+        hasSearched.value = true;
+    } catch (error) {
+        console.error("Error fetching recipes:", error);
+    }
+};
+
+const resetSelection = () => {
+    selectedIngredients.value = [];
+    recipes.value = [];
+    hasSearched.value = false;
+};
+
+onMounted(() => {
+    fetchIngredients();
+});
+
+const redirectToPostDetails = async (postId) => {
+    router.push({ name: 'PostDetails', params: { id: postId } });
+}
+
+</script>
+
 <template>
     <div class="container mt-3">
         <div class="bordered-container">
@@ -36,8 +90,9 @@
             <div class="col-3 mt-3" v-for="recipe in recipes" :key="recipe.id">
                 <div class="card h-100 rounded shadow-sm position-relative"
                     style="background-color: rgba(255, 255, 255, 0.12);">
-                    <router-link :to="'/postdetails/' + recipe.id" class="text-decoration-none text-dark">
-                        <img :src="apiURL(recipe.firstImage)" class="card-img-top rounded-top img-fluid" alt="Post Image">
+                    <a class="text-decoration-none text-dark" @click="redirectToPostDetails(recipe.id)">
+                        <img :src="recipe?.firstImage ? '/api/' + recipe.firstImage : ''"
+                            class="card-img-top rounded-top img-fluid" alt="Post Image">
                         <div class="card-body text-light">
                             <h5 class="card-title" style="font-weight: bold;">{{ recipe.name }}</h5>
                             <div class="row">
@@ -47,88 +102,12 @@
                                     recipe.servingFor }} people</p>
                             </div>
                         </div>
-                    </router-link>
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 </template>
-
-<script>
-import { ref, computed, onMounted } from 'vue';
-import axios from 'axios';
-
-const ROUTES = {
-    ingredientList: 'search/getAllIngredients',
-    searchByIngredients: 'search/searchByIngredients',
-};
-
-export default {
-    name: "AdvancedSearch",
-    setup() {
-        const ingredients = ref([]);
-        const ingredientQuery = ref('');
-        const selectedIngredients = ref([]);
-        const recipes = ref([]);
-        const hasSearched = ref(false);
-        const searchedIngredients = ref('');
-
-        const filteredIngredients = computed(() => {
-            return ingredients.value
-                .filter(ing => ing.name.toLowerCase().includes(ingredientQuery.value.toLowerCase()))
-                .slice(0, 24);
-        });
-
-        const apiURL = (relativePath, params = '') => {
-            return window.baseURL + '/' + relativePath + params;
-        };
-
-        const fetchIngredients = async () => {
-            try {
-                const response = await axios.get(apiURL(ROUTES.ingredientList));
-                ingredients.value = response.data.ingredients;
-            } catch (error) {
-                console.error("Error fetching ingredients:", error);
-            }
-        };
-
-        const searchRecipes = async () => {
-            const ingredientsString = selectedIngredients.value.join(',');
-            searchedIngredients.value = ingredientsString;
-            try {
-                const response = await axios.get(apiURL(ROUTES.searchByIngredients, `?ingredients=${ingredientsString}`));
-                recipes.value = response.data.recipes;
-                hasSearched.value = true;
-            } catch (error) {
-                console.error("Error fetching recipes:", error);
-            }
-        };
-
-        const resetSelection = () => {
-            selectedIngredients.value = [];
-            recipes.value = [];
-            hasSearched.value = false;
-        };
-
-        onMounted(() => {
-            fetchIngredients();
-        });
-
-        return {
-            ingredients,
-            ingredientQuery,
-            filteredIngredients,
-            selectedIngredients,
-            recipes,
-            searchRecipes,
-            apiURL,
-            resetSelection,
-            hasSearched,
-            searchedIngredients
-        };
-    }
-}
-</script>
 
 <style scoped>
 .bordered-container {
