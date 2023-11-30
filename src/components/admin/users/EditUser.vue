@@ -1,9 +1,76 @@
-<!-- eslint-disable vue/html-closing-bracket-newline -->
-<!-- eslint-disable vue/attributes-order -->
-<!-- eslint-disable vue/first-attribute-linebreak -->
-<!-- eslint-disable vue/html-self-closing -->
-<!-- eslint-disable vue/max-attributes-per-line -->
-<!-- eslint-disable vue/html-indent -->
+<script setup>
+import { ref, onMounted, reactive } from 'vue';
+import axios from 'axios';
+import { useRouter, useRoute } from 'vue-router';
+
+const router = useRouter();
+const route = useRoute();
+
+const user = reactive({
+    id: '',
+    name: '',
+    email: '',
+    password: '',
+    role: '',
+    avatar: null
+});
+
+const avatarPreview = ref(null);
+
+onMounted(async () => {
+    try {
+        const userId = route.params.id;
+        const response = await axios.get(`/api/users/${userId}`);
+        Object.assign(user, response.data);
+        user.password = null;
+    } catch (error) {
+        console.error('Error fetching user:', error);
+    }
+});
+
+const uploadAvatar = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+        user.avatar = file;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            avatarPreview.value = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+};
+
+const updateUser = async () => {
+    try {
+        const userId = route.params.id;
+        const formData = new FormData();
+
+        if (!user.password || user.password.trim() === '') {
+            delete user.password;
+        }
+
+        for (let key in user) {
+            formData.append(key, user[key]);
+        }
+
+        const config = { headers: { 'Content-Type': 'multipart/form-data' } };
+
+        const response = await axios.put(`/api/users/${userId}`, formData, config);
+
+        if (response.data.message === 'User updated successfully') {
+            alert('User updated successfully');
+            router.push('/admin/user-list');
+        }
+    } catch (error) {
+        console.error('Error updating user:', error);
+        alert('Error updating user. Please try again.');
+    }
+};
+
+const goBack = () => router.go(-1);
+</script>
+
 <template>
     <div class="edit-user-container">
         <button @click="goBack" class="btn btn-secondary mb-3">Quay lại</button>
@@ -50,86 +117,6 @@
         </div>
     </div>
 </template>
-  
-<script>
-import axios from 'axios';
-
-export default {
-    name: 'EditUser',
-    data() {
-        return {
-            user: {
-                id: '',
-                name: '',
-                email: '',
-                password: '',
-                role: '',
-                avatar: null
-            },
-            avatarPreview: null
-        };
-    },
-    async mounted() {
-        try {
-            const userId = this.$route.params.id;  // Get user ID from route
-            const response = await axios.get(`http://localhost:3000/users/${userId}`);
-            this.user = response.data;
-            this.user.password = null;  // Set password to null
-        } catch (error) {
-            console.error('Error fetching user:', error);
-        }
-    },
-    methods: {
-        goBack() {
-            this.$router.go(-1); // Điều hướng người dùng quay lại trang trước đó
-        },
-        uploadAvatar(event) {
-            const file = event.target.files[0];
-            if (file) {
-                this.user.avatar = file;
-
-                // Hiển thị ảnh xem trước
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    this.avatarPreview = e.target.result;
-                }
-                reader.readAsDataURL(file);
-            }
-        },
-        async updateUser() {
-            try {
-                const userId = this.$route.params.id;
-                const formData = new FormData();
-
-                // Nếu mật khẩu mới không được cung cấp, xóa trường mật khẩu khỏi đối tượng user
-                if (!this.user.password || this.user.password.trim() === '') {
-                    delete this.user.password;
-                }
-
-                for (let key in this.user) {
-                    formData.append(key, this.user[key]);
-                }
-
-                const config = {
-                    headers: {
-                        'Content-Type': 'multipart/form-data'
-                    }
-                };
-
-                const response = await axios.put(`http://localhost:3000/users/${userId}`, formData, config);
-
-                if (response.data.message === 'User updated successfully') {
-                    alert('User updated successfully');
-                    this.$router.push('/admin/user-list');
-                }
-            } catch (error) {
-                console.error('Error updating user:', error);
-                alert('Error updating user. Please try again.');
-            }
-        }
-    }
-}
-</script>
   
 <style scoped>
 .edit-user-container {

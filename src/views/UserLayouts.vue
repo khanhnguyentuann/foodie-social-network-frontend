@@ -334,11 +334,11 @@ const redirectToPostDetails = async (postId) => {
                         <li>
                             <hr class="dropdown-divider">
                         </li>
-                        <li>
+                        <!-- <li>
                             <a class="dropdown-item" href="#">
                                 <i class="fas fa-cogs mr-3"></i> Settings
                             </a>
-                        </li>
+                        </li> -->
                         <li>
                             <a class="dropdown-item" href="#" @click.prevent="logout">
                                 <i class="fas fa-sign-out-alt mr-3"></i> Log Out
