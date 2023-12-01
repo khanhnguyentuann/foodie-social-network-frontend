@@ -5,6 +5,10 @@ import { useFriendshipStore } from '../../store/friendshipStore';
 import { ref, onMounted, watch } from 'vue';
 import axios from 'axios';
 import moment from 'moment';
+import { useToast } from 'vue-toast-notification';
+import 'vue-toast-notification/dist/theme-sugar.css';
+
+const toast = useToast();
 
 const userStore = useUserStore();
 const friendshipStore = useFriendshipStore();
@@ -32,10 +36,11 @@ const acceptRequest = async (userId) => {
     try {
         await axios.post(`/api/friendship/accept-request`, { userId1: userStore.user.id, userId2: userId });
         friendshipStore.setFriendshipStatus('accepted');
-        alert('Cả hai đã trở thành bạn bè!');
+        toast.success('Friend request accepted. You are now friends!');
         friendRequests.value = friendRequests.value.filter(request => request.user_id1 !== userId);
     } catch (error) {
         console.error('Failed to accept friend request', error);
+        toast.error('Failed to accept friend request');
     }
 };
 
@@ -43,11 +48,12 @@ const declineRequest = async (userId) => {
     try {
         await axios.delete(`/api/friendship/cancel-request`, { params: { userId1: userStore.user.id, userId2: userId } });
         friendshipStore.setFriendshipStatus('none');
-        alert('Lời mời kết bạn đã được hủy');
+        toast.success('Friend request canceled');
         friendRequests.value = friendRequests.value.filter(request => request.user_id1 !== userId);
         await loadFriendRequests();
     } catch (error) {
         console.error('Failed to cancel friend request', error);
+        toast.error('Failed to cancel friend request');
     }
 };
 

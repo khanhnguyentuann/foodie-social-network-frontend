@@ -3,6 +3,10 @@ import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
 import axios from 'axios';
 import { useUserStore } from '../../store/userStore';
 import { useRouter } from 'vue-router';
+import { useToast } from 'vue-toast-notification';
+import 'vue-toast-notification/dist/theme-sugar.css';
+
+const toast = useToast();
 
 const recipe = ref({
     name: '',
@@ -38,9 +42,7 @@ const fetchIngredients = async () => {
     }
 };
 
-const addStep = () => {
-    recipe.value.steps.push('');
-};
+const addStep = () => recipe.value.steps.push('');
 
 const closeDropdown = (event) => {
     if (!document.documentElement.contains(event.target)) {
@@ -54,18 +56,14 @@ const removeStep = (index) => {
     }
 };
 
-const toggleDropdown = () => {
-    showDropdown.value = !showDropdown.value;
-};
+const toggleDropdown = () => showDropdown.value = !showDropdown.value;
 
 const onImagesChange = (e) => {
     const files = Array.from(e.target.files);
     recipe.value.images = files;
 };
 
-const getCurrentUserId = () => {
-    return useUserStore().user?.id ?? null;
-};
+const getCurrentUserId = () => useUserStore().user?.id ?? null;
 
 const onIngredientInput = () => {
     const lowercasedInput = ingredientInput.value.toLowerCase();
@@ -94,9 +92,7 @@ const removeIngredient = (ingredientId) => {
     }
 };
 
-const setDifficulty = (starCount) => {
-    recipe.value.difficulty = starCount;
-};
+const setDifficulty = (starCount) => recipe.value.difficulty = starCount;
 
 const validateField = (field, value) => {
     const fieldNames = {
@@ -193,14 +189,13 @@ const prepareFormData = () => {
 
 const submitRecipe = async () => {
     if (!validateForm()) {
-        alert('Vui lòng điền đầy đủ và chính xác thông tin.');
+        toast.error('Please fill in all required fields correctly.');
         return;
     }
 
     isLoading.value = true;
 
     try {
-        console.log('Gửi yêu cầu tạo công thức');
         await axios.post(`/api/recipes/create`, prepareFormData(), {
             headers: {
                 'Content-Type': 'multipart/form-data'
@@ -208,10 +203,10 @@ const submitRecipe = async () => {
         });
 
         router.push({ name: 'RecipeNewsFeed' });
-        alert('Đăng tải công thức thành công!');
+        toast.success('Recipe uploaded successfully!');
     } catch (error) {
-        console.error('Lỗi khi đăng công thức:', error.response ? error.response.data : error.message);
-        alert('Có lỗi xảy ra khi đăng công thức. Vui lòng thử lại.');
+        console.error('Error submitting recipe:', error.response ? error.response.data : error.message);
+        toast.error('An error occurred while submitting the recipe. Please try again.');
     } finally {
         isLoading.value = false;
     }

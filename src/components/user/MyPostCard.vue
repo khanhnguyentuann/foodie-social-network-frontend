@@ -7,6 +7,10 @@ import moment from 'moment';
 import 'moment/locale/vi';
 import $ from 'jquery';
 import { useRouter } from 'vue-router';
+import { useToast } from 'vue-toast-notification';
+import 'vue-toast-notification/dist/theme-sugar.css';
+
+const toast = useToast();
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -31,10 +35,6 @@ onMounted(async () => {
         });
     });
 });
-
-const shareLinkCopy = () => {
-    $(".message").text("link copied");
-};
 
 const loadUserRecipes = async ({ id: userId } = {}, userRecipes) => {
     try {
@@ -160,6 +160,11 @@ const addReply = async (recipeId, commentId) => {
     }
 };
 
+const shareLinkCopy = () => {
+    $(".message").text("Link copied");
+    toast.success('Link copied');
+};
+
 const deleteRecipe = async (recipeId) => {
     try {
         const userConfirmed = confirm("Are you sure you want to delete this recipe?");
@@ -167,31 +172,37 @@ const deleteRecipe = async (recipeId) => {
         if (userConfirmed) {
             await axios.delete(`/api/myprofile/${userStore.user.id}/${recipeId}`);
             userRecipes.value = userRecipes.value.filter((recipe) => recipe.id !== recipeId);
+            toast.success('Recipe deleted successfully');
         }
     } catch (error) {
-        console.error('Lỗi khi xóa bài viết:', error);
+        console.error('Error deleting recipe:', error);
+        toast.error('Failed to delete recipe');
     }
 };
 
-const saveRecipe = async recipeId => {
+const saveRecipe = async (recipeId) => {
     try {
         await axios.post(`/api/favorite/${recipeId}`, {
             userId: userStore.user.id,
         });
         updateRecipeSaveStatus(recipeId, true);
+        toast.success('Recipe saved successfully');
     } catch (error) {
-        console.error('Lỗi khi lưu bài viết:', error);
+        console.error('Error saving recipe:', error);
+        toast.error('Failed to save recipe');
     }
 };
 
-const unsaveRecipe = async recipeId => {
+const unsaveRecipe = async (recipeId) => {
     try {
         await axios.delete(`/api/favorite/${recipeId}`, {
-            params: { userId: userStore.user.id }
+            params: { userId: userStore.user.id },
         });
         updateRecipeSaveStatus(recipeId, false);
+        toast.info('Recipe unsaved successfully');
     } catch (error) {
-        console.error('Lỗi khi hủy lưu bài viết:', error);
+        console.error('Error unsaving recipe:', error);
+        toast.error('Failed to unsave recipe');
     }
 };
 

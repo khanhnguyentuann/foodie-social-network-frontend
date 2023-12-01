@@ -7,6 +7,10 @@ import 'moment/locale/vi';
 import { useRouter } from 'vue-router';
 import $ from 'jquery';
 import { useUserStore } from '../../store/userStore';
+import { useToast } from 'vue-toast-notification';
+import 'vue-toast-notification/dist/theme-sugar.css';
+
+const toast = useToast();
 
 const userStore = useUserStore();
 const router = useRouter();
@@ -73,10 +77,6 @@ const fetchInitialData = async () => {
         console.error('Lỗi khi tải công thức:', error);
     }
 };
-
-const shareLinkCopy = () => {
-    $(".message").text("link copied");
-}
 
 const formatTime = (time) => {
     moment.locale('vi');
@@ -166,6 +166,11 @@ const addReply = async (recipeId, commentId) => {
     }
 }
 
+const shareLinkCopy = () => {
+    $(".message").text("Link copied");
+    toast.success('Link copied');
+};
+
 const deleteRecipe = async (recipeId) => {
     try {
         const userConfirmed = confirm("Are you sure you want to delete this recipe?");
@@ -173,9 +178,11 @@ const deleteRecipe = async (recipeId) => {
         if (userConfirmed) {
             await axios.delete(`api/newsfeed/delete/${recipeId}`);
             recipes.value = recipes.value.filter(recipe => recipe.id !== recipeId);
+            toast.success('Recipe deleted successfully');
         }
     } catch (error) {
-        console.error('Lỗi khi xóa bài viết:', error);
+        console.error('Error deleting recipe:', error);
+        toast.error('Failed to delete recipe');
     }
 };
 
@@ -185,8 +192,10 @@ const saveRecipe = async (recipeId) => {
             userId: userStore.user.id,
         });
         updateRecipeSaveStatus(recipeId, true);
+        toast.success('Recipe saved successfully');
     } catch (error) {
-        console.error('Lỗi khi lưu bài viết:', error);
+        console.error('Error saving recipe:', error);
+        toast.error('Failed to save recipe');
     }
 };
 
@@ -196,8 +205,10 @@ const unsaveRecipe = async (recipeId) => {
             params: { userId: userStore.user.id }
         });
         updateRecipeSaveStatus(recipeId, false);
+        toast.info('Recipe removed from saved list successfully');
     } catch (error) {
-        console.error('Lỗi khi xóa bài viết khỏi danh sách đã lưu:', error);
+        console.error('Error removing recipe from saved list:', error);
+        toast.error('Failed to remove recipe from saved list');
     }
 };
 

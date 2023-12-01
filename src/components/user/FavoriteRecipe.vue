@@ -2,6 +2,10 @@
 import axios from 'axios';
 import { ref, onMounted } from 'vue';
 import { useUserStore } from '../../store/userStore';
+import { useToast } from 'vue-toast-notification';
+import 'vue-toast-notification/dist/theme-sugar.css';
+
+const toast = useToast();
 
 const userStore = useUserStore();
 const savedRecipes = ref([]);
@@ -23,8 +27,10 @@ const unsaveRecipe = async (recipeId) => {
             params: { userId: userStore.user.id }
         });
         await fetchSavedRecipes();
+        toast.success('Recipe removed from bookmarks successfully');
     } catch (error) {
-        console.error('Lỗi khi hủy lưu công thức:', error);
+        console.error('Error removing recipe from bookmarks:', error);
+        toast.error('Failed to remove recipe from bookmarks');
     }
 };
 

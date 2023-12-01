@@ -4,6 +4,8 @@ import { useUserStore } from '../../store/userStore';
 import { useFriendshipStore } from '../../store/friendshipStore';
 import axios from 'axios';
 import { useRouter } from 'vue-router';
+import { useToast } from 'vue-toast-notification';
+import 'vue-toast-notification/dist/theme-sugar.css';
 
 const props = defineProps({
     userId: { type: String, required: true },
@@ -14,6 +16,7 @@ const props = defineProps({
 const userStore = useUserStore();
 const friendshipStore = useFriendshipStore();
 const router = useRouter();
+const toast = useToast();
 
 const friendshipStatus = computed(() => friendshipStore.friendshipStatus);
 const requestDirection = computed(() => friendshipStore.requestDirection);
@@ -45,8 +48,10 @@ const sendFriendRequest = async () => {
         await axios.post(`/api/friendship/send-request`, { userId1: userStore.user.id, userId2: props.userId });
         friendshipStore.setFriendshipStatus('pending');
         friendshipStore.setRequestDirection('outgoing');
+        toast.success('Friend request sent successfully');
     } catch (error) {
         handleErrors('Failed to send friend request', error);
+        toast.error('Failed to send friend request');
     }
 };
 
@@ -54,9 +59,10 @@ const acceptRequest = async () => {
     try {
         await axios.post(`/api/friendship/accept-request`, { userId1: userStore.user.id, userId2: props.userId });
         friendshipStore.setFriendshipStatus('accepted');
-        alert('Cả hai đã trở thành bạn bè!');
+        toast.success('Friend request accepted. You are now friends!');
     } catch (error) {
         handleErrors('Failed to accept friend request', error);
+        toast.error('Failed to accept friend request');
     }
 };
 
@@ -64,8 +70,10 @@ const cancelRequest = async () => {
     try {
         await axios.delete(`/api/friendship/cancel-request`, { params: { userId1: userStore.user.id, userId2: props.userId } });
         friendshipStore.setFriendshipStatus('none');
+        toast.info('Friend request canceled');
     } catch (error) {
         handleErrors('Failed to cancel friend request', error);
+        toast.error('Failed to cancel friend request');
     }
 };
 
@@ -76,10 +84,11 @@ const unfriend = async () => {
         if (userConfirmed) {
             await axios.delete(`/api/friendship/unfriend`, { params: { userId1: userStore.user.id, userId2: props.userId } });
             friendshipStore.setFriendshipStatus('none');
-            alert('Friendship has been ended');
+            toast.success('Friendship has been ended');
         }
     } catch (error) {
         handleErrors('Failed to unfriend', error);
+        toast.error('Failed to unfriend');
     }
 };
 

@@ -34,8 +34,9 @@ onMounted(fetchConversations);
 <template>
     <div class="card mb-sm-3 mb-md-0 contacts_card mt-3">
         <div class="card-header">
-            <div class="input-group">
-                <input type="text" placeholder="Search..." name="" class="form-control search">
+            <div class="input-group form">
+                <!-- <input type="text" placeholder="Search..." name="" class="form-control search"> -->
+                <input type="text" class="form-control search" placeholder="Search..." v-model="searchTerm">
                 <div class="input-group-prepend">
                     <span class="input-group-text search_btn"><i class="fas fa-search"></i></span>
                 </div>

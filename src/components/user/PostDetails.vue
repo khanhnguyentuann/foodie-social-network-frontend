@@ -8,6 +8,10 @@ import { useUserStore } from '../../store/userStore';
 import { useRoute, useRouter } from 'vue-router';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import $ from 'jquery';
+import { useToast } from 'vue-toast-notification';
+import 'vue-toast-notification/dist/theme-sugar.css';
+
+const toast = useToast();
 
 const userStore = useUserStore();
 const route = useRoute();
@@ -59,7 +63,10 @@ const fetchInitialData = async () => {
     }
 };
 
-const shareLinkCopy = () => $(".message").text("link copied");
+const shareLinkCopy = () => {
+    $(".message").text("Link copied");
+    toast.success('Link copied');
+};
 
 const formatTime = (time) => {
     moment.locale('vi');

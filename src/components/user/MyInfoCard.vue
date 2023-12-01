@@ -2,7 +2,10 @@
 import { useUserStore } from '../../store/userStore';
 import { computed, ref, onMounted } from 'vue';
 import axios from 'axios';
+import { useToast } from 'vue-toast-notification';
+import 'vue-toast-notification/dist/theme-sugar.css';
 
+const toast = useToast();
 const userStore = useUserStore();
 const isEditingProfile = ref(false);
 const userAvatar = computed(() => `/api/${userStore?.user.avatar}`);
@@ -158,26 +161,25 @@ const updateUserData = async (userId) => {
     localStorage.setItem('user', JSON.stringify(updatedUserData));
 };
 
-
 const saveProfile = async () => {
-    if (editedUsername !== originalUsername || editedEmail !== originalEmail || selectedAvatar != originalAvatar || newPassword !== '') {
+    if (editedUsername !== originalUsername || editedEmail !== originalEmail || selectedAvatar !== originalAvatar || newPassword !== '') {
         try {
             const response = await sendUpdateRequest();
             if (response === null) return;
 
             if (response.status === 200) {
                 await updateUserData(userStore.user.id);
-                alert(response.data.message);
+                toast.success(response.data.message, {});
             } else {
-                console.error('Lỗi khi cập nhật thông tin người dùng:', response.data.message);
-                alert(response.data.message);
+                console.error('Error updating user information:', response.data.message);
+                toast.error(response.data.message, {});
             }
         } catch (error) {
-            console.error('Lỗi khi cập nhật thông tin người dùng:', error);
-            alert('Có lỗi xảy ra khi cập nhật thông tin người dùng');
+            console.error('Error updating user information:', error);
+            toast.error('An error occurred while updating user information', {});
         }
     } else {
-        alert('Không có thay đổi nào để cập nhật.');
+        toast.info('No changes to update.');
     }
 };
 

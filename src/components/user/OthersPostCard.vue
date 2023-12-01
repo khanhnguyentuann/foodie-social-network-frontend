@@ -7,6 +7,10 @@ import 'moment/locale/vi';
 import { useUserStore } from '../../store/userStore';
 import $ from 'jquery';
 import { useRouter } from 'vue-router';
+import { useToast } from 'vue-toast-notification';
+import 'vue-toast-notification/dist/theme-sugar.css';
+
+const toast = useToast();
 
 const router = useRouter();
 const props = defineProps({
@@ -137,9 +141,10 @@ const saveRecipe = async recipeId => {
     try {
         await axios.post(`/api/favorite/${recipeId}`, { userId: userStore.user.id });
         updateRecipeSaveStatus(recipeId, true);
-        alert('Lưu bài viết thành công!')
+        toast.success('Recipe saved successfully');
     } catch (error) {
         handleError('Lỗi khi lưu bài viết:', error);
+        toast.error('Failed to save recipe');
     }
 };
 
@@ -147,9 +152,10 @@ const unsaveRecipe = async recipeId => {
     try {
         await axios.delete(`/api/favorite/${recipeId}`, { params: { userId: userStore.user.id } });
         updateRecipeSaveStatus(recipeId, false);
-        alert('Đã huỷ lưu bài viết này!')
+        toast.info('Recipe unsaved successfully');
     } catch (error) {
         handleError('Lỗi khi hủy lưu bài viết:', error);
+        toast.error('Failed to unsave recipe');
     }
 };
 
@@ -187,7 +193,10 @@ const goToUserProfile = (userId) => {
     }
 };
 
-const shareLinkCopy = () => $(".message").text("link copied");
+const shareLinkCopy = () => {
+    $(".message").text("Link copied");
+    toast.success('Link copied');
+};
 
 watch(() => props.userRecipes, loadRecipesList);
 
