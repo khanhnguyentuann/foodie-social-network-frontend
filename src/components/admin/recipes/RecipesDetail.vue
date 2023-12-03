@@ -1,8 +1,38 @@
-<!-- eslint-disable vue/attributes-order -->
-<!-- eslint-disable vue/first-attribute-linebreak -->
+<script setup>
+import axios from 'axios';
+import { ref, onMounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+
+
+const recipe = ref({});
+const route = useRoute();
+const router = useRouter();
+
+const goBack = () => router.back();
+
+const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString();
+};
+
+const fetchRecipeDetails = async () => {
+    const recipeId = route.params.recipeId;
+    try {
+        const response = await axios.get(`/api/recipes/${recipeId}`);
+        recipe.value = response.data;
+        recipe.value.steps = JSON.parse(recipe.value.steps);
+    } catch (error) {
+        console.error('Error fetching recipe details:', error);
+    }
+};
+
+onMounted(fetchRecipeDetails);
+
+</script>
+
 <template>
     <div class="container my-4">
-        <button @click="goBack" class="btn btn-secondary mb-3">Quay lại</button>
+        <button @click="goBack" class="btn btn-secondary mb-3">Back</button>
 
         <div class="card bg-dark text-white">
             <div class="card-header">
@@ -47,7 +77,7 @@
                 <h5 class="card-title mt-4">Hình ảnh minh hoạ:</h5>
                 <div class="row">
                     <div class="col-md-4" v-for="image in recipe.images" :key="image">
-                        <img :src="apiURL(image)" class="img-fluid img-thumbnail my-2" alt="Recipe Image">
+                        <img :src="'/api/' + image" class="img-fluid img-thumbnail my-2" alt="Recipe Image">
                     </div>
                 </div>
 
@@ -55,57 +85,3 @@
         </div>
     </div>
 </template>
-
-<script>
-import axios from 'axios';
-import { ref, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-
-const ROUTES = {
-    RecipeDetail: id => `recipes/${id}`,
-};
-
-export default {
-    name: 'RecipesDetail',
-    setup() {
-        const recipe = ref({});
-        const route = useRoute();
-        const router = useRouter();
-
-        const apiURL = (relativePath) => {
-            return window.baseURL + '/' + relativePath;
-        };
-
-        const goBack = () => {
-            router.back();  // điều hướng quay lại trang trước
-        };
-
-        const formatDate = (dateString) => {
-            const date = new Date(dateString);
-            return date.toLocaleDateString();
-        };
-
-        const fetchRecipeDetails = async () => {
-            const recipeId = route.params.id;  // Lấy ID từ URL bằng cách sử dụng useRoute
-            try {
-                const response = await axios.get(apiURL(ROUTES.RecipeDetail(recipeId)));
-                recipe.value = response.data;
-                if (recipe.value.steps) {
-                    recipe.value.steps = JSON.parse(recipe.value.steps);
-                }
-            } catch (error) {
-                console.error('Error fetching recipe details:', error);
-            }
-        };
-
-        onMounted(fetchRecipeDetails);
-
-        return {
-            recipe,
-            apiURL,
-            formatDate,
-            goBack
-        };
-    }
-};
-</script>

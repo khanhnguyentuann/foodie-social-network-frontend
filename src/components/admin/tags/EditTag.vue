@@ -1,13 +1,50 @@
-<!-- eslint-disable vue/attributes-order -->
-<!-- eslint-disable vue/max-attributes-per-line -->
-<!-- eslint-disable vue/html-self-closing -->
-<!-- eslint-disable vue/html-indent -->
+<script setup>
+import { ref, onMounted } from 'vue';
+import axios from 'axios';
+import { useRouter, useRoute } from 'vue-router';
+import { useToast } from 'vue-toast-notification';
+import 'vue-toast-notification/dist/theme-sugar.css';
+
+const toast = useToast();
+const tag = ref({ name: '' });
+const router = useRouter();
+const route = useRoute();
+
+const goBack = () => router.back();
+
+onMounted(async () => {
+    try {
+        const tagId = route.params.id;
+        const response = await axios.get(`/api/tags/${tagId}`);
+        tag.value.name = response.data.tag_name;
+    } catch (error) {
+        console.error("Error fetching tag:", error);
+    }
+});
+
+const updateTag = async () => {
+    try {
+        const tagId = route.params.id;
+        const response = await axios.put(`/api/tags/${tagId}`, { name: tag.value.name });
+        if (response.status === 200) {
+            toast.success(response.data.message);
+            router.push('/admin/tag-list');
+        } else {
+            toast.error('Failed to update tag. Please try again.');
+        }
+    } catch (error) {
+        console.error("Error updating tag:", error);
+        toast.error('Error updating tag. Please try again.');
+    }
+};
+</script>
+
 <template>
     <div class="edit-tag-container">
-        <button @click="goBack" class="btn btn-secondary mb-3">Quay lại</button>
+        <button @click="goBack" class="btn btn-secondary mb-3">Back</button>
 
         <div class="header-section">
-            <h3>Update Tag</h3>
+            <h3>Update tag</h3>
         </div>
         <div class="card">
             <div class="card-body">
@@ -17,75 +54,13 @@
                         <input id="tagName" v-model="tag.name" type="text" class="form-control" required />
                     </div>
                     <div class="d-flex justify-content-end">
-                        <button type="submit" class="btn btn-primary">Update Tag</button>
+                        <button type="submit" class="btn btn-primary">Update</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </template>
-
-<script>
-import { ref, onMounted } from 'vue';
-import axios from 'axios';
-import { useRouter, useRoute } from 'vue-router';
-
-const ROUTES = {
-    getTag: id => `tags/${id}`,
-    updateTag: id => `tags/${id}`,
-};
-
-export default {
-    setup() {
-        const tag = ref({ name: '' });
-        const router = useRouter();
-        const route = useRoute();
-
-        const apiURL = (relativePath) => {
-            return window.baseURL + '/' + relativePath;
-        };
-
-        const goBack = () => {
-            router.back();  // điều hướng quay lại trang trước
-        };
-
-        onMounted(async () => {
-            try {
-                const tagId = route.params.id;
-                const response = await axios.get(apiURL(ROUTES.getTag(tagId)));
-                tag.value.name = response.data.tag_name;
-            } catch (error) {
-                console.error("Error fetching tag:", error);
-            }
-        });
-
-        const updateTag = async () => {
-            try {
-                const tagId = route.params.id;
-                const response = await axios.put(apiURL(ROUTES.updateTag(tagId)), {
-                    name: tag.value.name,
-                });
-                if (response.status === 200) {
-                    alert('Tag updated successfully');
-                    router.push('/admin/tag-list');
-                } else {
-                    alert('Failed to update tag. Please try again.');
-                }
-            } catch (error) {
-                console.error("Error updating tag:", error);
-                alert('Error updating tag. Please try again.');
-            }
-        };
-
-        return {
-            tag,
-            updateTag,
-            apiURL,
-            goBack
-        };
-    },
-};
-</script>
 
 <style scoped>
 .edit-tag-container {

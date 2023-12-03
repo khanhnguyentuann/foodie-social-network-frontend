@@ -97,10 +97,10 @@ onMounted(() => {
     <div class="mt-3">
         <div class="row">
             <div class="col-8">
-                <h4>Friend Requests</h4>
+                <h4>Friend requests</h4>
             </div>
             <div class="click col-4 text-right" @click="goToFriendRequest()" style="z-index: 10;">
-                <p>See All</p>
+                <p>See all</p>
             </div>
         </div>
 

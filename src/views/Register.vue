@@ -2,6 +2,10 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
+import { useToast } from 'vue-toast-notification';
+import 'vue-toast-notification/dist/theme-sugar.css';
+
+const toast = useToast();
 
 const router = useRouter();
 const username = ref('');
@@ -42,9 +46,8 @@ const goToLogin = () => {
 };
 
 const register = async () => {
-    validate(); // Kiểm tra lỗi
+    validate();
 
-    // Kiểm tra lỗi cho từng trường input và ngăn tiến hành đăng ký nếu có lỗi
     if (usernameError.value || emailError.value || passwordError.value || confirmPasswordError.value) {
         return;
     }
@@ -57,16 +60,16 @@ const register = async () => {
         });
 
         if (response.status === 201) {
-            alert("Success! You're In!");
+            toast.success("Success! You're In!");
             router.push({ name: 'Login' });
         } else {
-            alert(response.data.message);
+            toast.error(response.data.message);
         }
     } catch (error) {
         if (error.response && error.response.data) {
-            alert(error.response.data.message || 'Error during registration');
+            toast.error(error.response.data.message || 'Error during registration');
         } else {
-            alert(error.message || 'Registration error');
+            toast.error(error.message || 'Registration error');
         }
     }
 };

@@ -1,8 +1,53 @@
-<!-- eslint-disable vue/attributes-order -->
-<!-- eslint-disable vue/html-indent -->
-<!-- eslint-disable vue/first-attribute-linebreak -->
-<!-- eslint-disable vue/html-closing-bracket-newline -->
-<!-- eslint-disable vue/max-attributes-per-line -->
+<script setup>
+import axios from 'axios';
+import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { useToast } from 'vue-toast-notification';
+import 'vue-toast-notification/dist/theme-sugar.css';
+import makePaginationService from '../../../services/pagination.service';
+
+const toast = useToast();
+const router = useRouter();
+const users = ref([]);
+const currentPage = ref(1);
+const usersPerPage = 4;
+const totalPages = computed(() => Math.ceil(users.value.length / usersPerPage));
+
+const { changePage, nextPage, prevPage, calculatePagesToShow, changePageToEllipsis } = makePaginationService(currentPage, totalPages);
+const pagesToShow = computed(calculatePagesToShow);
+const displayedUsers = computed(() => users.value.slice((currentPage.value - 1) * usersPerPage, currentPage.value * usersPerPage));
+
+const fetchUsers = async () => {
+  try {
+    const response = await axios.get('/api/users');
+    users.value = response.data;
+  } catch (error) {
+    console.error('Error fetching users:', error);
+  }
+};
+
+onMounted(fetchUsers);
+
+const goToAddUser = () => router.push({ name: 'AddUser' });
+const goToEditUser = (userId) => router.push({ name: 'EditUser', params: { userId } });
+
+const formatDate = (date) => new Date(date).toLocaleDateString();
+
+const deleteUser = async (userId) => {
+  if (!confirm('Are you sure you want to delete this user?')) return;
+
+  try {
+    const response = await axios.delete(`/api/users/${userId}`);
+    users.value = users.value.filter(user => user.id !== userId);
+    toast.success(response.data.message);
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    toast.error()
+  }
+};
+
+</script>
+
 <template>
   <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -31,7 +76,7 @@
         <tr v-for="user in displayedUsers" :key="user.id">
           <td>{{ user.id }}</td>
           <td>
-            <img :src="'http://localhost:3000/' + user.avatar" alt="User Avatar" class="rounded-circle"
+            <img :src="user?.avatar ? '/api/' + user.avatar : ''" alt="User Avatar" class="rounded-circle"
               style="width: 50px;">
           </td>
           <td>{{ user.name }}</td>
@@ -48,90 +93,23 @@
 
     <!-- Phân trang -->
     <nav aria-label="Page navigation" class="mt-4">
-      <ul class="pagination">
+      <ul class="pagination justify-content-center">
         <li class="page-item" :class="{ 'disabled': currentPage === 1 }">
-          <a class="page-link" href="#" @click.prevent="currentPage--">Previous</a>
+          <a class="page-link" href="#" @click="prevPage">Previous</a>
         </li>
-        <li class="page-item" v-for="page in totalPages" :key="page" :class="{ 'active': currentPage === page }">
-          <a class="page-link" href="#" @click.prevent="changePage(page)">{{ page }}</a>
+        <li class="page-item" v-for="(page, index) in pagesToShow" :key="page"
+          :class="{ 'active': currentPage === page }">
+          <template v-if="typeof page === 'number'">
+            <a class="page-link" href="#" @click="() => changePage(page)">{{ page }}</a>
+          </template>
+          <template v-else>
+            <a class="page-link" href="#" @click="() => changePageToEllipsis(page, index)">...</a>
+          </template>
         </li>
         <li class="page-item" :class="{ 'disabled': currentPage === totalPages }">
-          <a class="page-link" href="#" @click.prevent="currentPage++">Next</a>
+          <a class="page-link" href="#" @click="nextPage">Next</a>
         </li>
       </ul>
     </nav>
   </div>
 </template>
-
-<script>
-import axios from 'axios';
-
-export default {
-  name: 'UserList',
-  data() {
-    return {
-      users: [],
-      currentPage: 1, // trang hiện tại
-      usersPerPage: 4, // số người dùng trên mỗi trang
-    }
-  },
-  computed: {
-    totalPages() {
-      return Math.ceil(this.users.length / this.usersPerPage);
-    },
-    displayedUsers() {
-      const start = (this.currentPage - 1) * this.usersPerPage;
-      const end = start + this.usersPerPage;
-      return this.users.slice(start, end);
-    }
-  },
-  async mounted() {
-    try {
-      const response = await axios.get('http://localhost:3000/users');
-      this.users = response.data;
-    } catch (error) {
-      console.error('Error fetching users:', error);
-    }
-  },
-  methods: {
-    goToAddUser() {
-      this.$router.push('/admin/user-list/add-user');
-    },
-    formatDate(date) {
-      return new Date(date).toLocaleDateString();
-    },
-    goToEditUser(userId) {
-      this.$router.push(`/admin/user-list/edit-user/${userId}`);
-    },
-    changePage(page) {
-      if (page >= 1 && page <= this.totalPages) {
-        this.currentPage = page;
-      }
-    },
-    nextPage() {
-      if (this.currentPage < this.totalPages) {
-        this.currentPage++;
-      }
-    },
-    prevPage() {
-      if (this.currentPage > 1) {
-        this.currentPage--;
-      }
-    },
-    async deleteUser(userId) {
-      try {
-        const confirmation = confirm('Are you sure you want to delete this user?');
-
-        if (confirmation) {
-          await axios.delete(`http://localhost:3000/users/${userId}`);
-          // Tải lại danh sách người dùng sau khi xóa
-          this.users = this.users.filter(user => user.id !== userId);
-        }
-      } catch (error) {
-        console.error('Error deleting user:', error);
-        alert('Failed to delete user. Please try again.');
-      }
-    },
-  }
-}
-</script>

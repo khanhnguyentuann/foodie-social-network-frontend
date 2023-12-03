@@ -1,13 +1,50 @@
-<!-- eslint-disable vue/attributes-order -->
-<!-- eslint-disable vue/max-attributes-per-line -->
-<!-- eslint-disable vue/html-self-closing -->
-<!-- eslint-disable vue/html-indent -->
+<script setup>
+import { ref, onMounted } from 'vue';
+import axios from 'axios';
+import { useRouter, useRoute } from 'vue-router';
+import { useToast } from 'vue-toast-notification';
+import 'vue-toast-notification/dist/theme-sugar.css';
+
+const ingredient = ref({ name: '' });
+const router = useRouter();
+const route = useRoute();
+const toast = useToast();
+
+const goBack = () => router.back();
+
+onMounted(async () => {
+    try {
+        const ingredientId = route.params.id;
+        const response = await axios.get(`/api/ingredients/${ingredientId}`);
+        ingredient.value.name = response.data.name;
+    } catch (error) {
+        console.error("Error fetching ingredient:", error);
+    }
+});
+
+const updateIngredient = async () => {
+    try {
+        const ingredientId = route.params.id;
+        const response = await axios.put(`/api/ingredients/${ingredientId}`, { name: ingredient.value.name });
+        if (response.status === 200) {
+            toast.success(response.data.message);
+            router.push({ name: 'IngredientList' });
+        } else {
+            toast.error('Failed to update ingredient. Please try again.');
+        }
+    } catch (error) {
+        console.error("Error updating ingredient:", error);
+        toast.error(error.response.data.message);
+    }
+};
+</script>
+
 <template>
     <div class="edit-ingredient-container">
-        <button @click="goBack" class="btn btn-secondary mb-3">Quay lại</button>
+        <button @click="goBack" class="btn btn-secondary mb-3">Back</button>
 
         <div class="header-section">
-            <h3>Update Ingredient</h3>
+            <h3>Update ingredient</h3>
         </div>
         <div class="card">
             <div class="card-body">
@@ -17,76 +54,13 @@
                         <input id="ingredientName" v-model="ingredient.name" type="text" class="form-control" required />
                     </div>
                     <div class="d-flex justify-content-end">
-                        <button type="submit" class="btn btn-primary">Update Ingredient</button>
+                        <button type="submit" class="btn btn-primary">Update</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </template>
-  
-<script>
-import { ref, onMounted } from 'vue';
-import axios from 'axios';
-import { useRouter, useRoute } from 'vue-router';
-
-const ROUTES = {
-    getIngredient: id => `ingredients/${id}`,
-    updateIngredient: id => `ingredients/${id}`
-};
-
-export default {
-    setup() {
-        const ingredient = ref({ name: '' });
-        const router = useRouter();
-        const route = useRoute();
-
-        const apiURL = (relativePath) => {
-            return window.baseURL + '/' + relativePath;
-        };
-
-        const goBack = () => {
-            router.back();  // điều hướng quay lại trang trước
-        };
-
-        onMounted(async () => {
-            try {
-                const ingredientId = route.params.id;
-                const response = await axios.get(apiURL(ROUTES.getIngredient(ingredientId)));
-                ingredient.value.name = response.data.name;
-            } catch (error) {
-                console.error("Error fetching ingredient:", error);
-            }
-        });
-
-        const updateIngredient = async () => {
-            try {
-                const ingredientId = route.params.id;
-                const response = await axios.put(apiURL(ROUTES.updateIngredient(ingredientId)), {
-                    name: ingredient.value.name,
-                });
-                if (response.status === 200) {
-                    alert('Ingredient updated successfully');
-                    router.push('/admin/ingredient-list');
-                } else {
-                    alert('Failed to update ingredient. Please try again.');
-                }
-            } catch (error) {
-                console.error("Error updating ingredient:", error);
-                alert('Error updating ingredient. Please try again.');
-            }
-        };
-
-        return {
-            ingredient,
-            updateIngredient,
-            apiURL,
-            goBack
-        };
-    },
-};
-</script>
-
 
 <style scoped>
 .edit-ingredient-container {

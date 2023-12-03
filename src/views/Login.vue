@@ -3,6 +3,10 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '../store/userStore';
 import axios from 'axios';
+import { useToast } from 'vue-toast-notification';
+import 'vue-toast-notification/dist/theme-sugar.css';
+
+const toast = useToast();
 
 const email = ref('');
 const password = ref('');
@@ -37,15 +41,16 @@ const login = async () => {
             } else {
                 router.push({ name: 'RecipeNewsFeed' });
             }
+            toast.success('Login successful');
         } else {
-            alert(data.message);
+            console.error('Error logging in:', data.message);
+            toast.error(data.message);
         }
     } catch (error) {
-        console.error(error);
-        alert(error.message);
+        console.error('Error logging in:', error);
+        toast.error('An error occurred while logging in');
     }
 };
-
 </script>
 
 <template>

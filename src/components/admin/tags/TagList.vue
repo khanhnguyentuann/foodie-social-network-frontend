@@ -1,5 +1,50 @@
-<!-- eslint-disable vue/attributes-order -->
-<!-- eslint-disable vue/max-attributes-per-line -->
+<script setup>
+import axios from 'axios';
+import { ref, onMounted, computed } from 'vue';
+import { useRouter } from 'vue-router';
+import { useToast } from 'vue-toast-notification';
+import 'vue-toast-notification/dist/theme-sugar.css';
+import makePaginationService from '../../../services/pagination.service';
+
+const toast = useToast();
+const router = useRouter();
+const tags = ref([]);
+const currentPage = ref(1);
+const tagsPerPage = 6;
+const totalPages = computed(() => Math.ceil(tags.value.length / tagsPerPage));
+
+const { changePage, nextPage, prevPage, calculatePagesToShow, changePageToEllipsis } = makePaginationService(currentPage, totalPages);
+const pagesToShow = computed(calculatePagesToShow);
+const displayedTags = computed(() => tags.value.slice((currentPage.value - 1) * tagsPerPage, currentPage.value * tagsPerPage));
+
+const fetchTags = async () => {
+  try {
+    const response = await axios.get('/api/tags');
+    tags.value = response.data;
+  } catch (error) {
+    console.error('Error fetching tags:', error);
+  }
+};
+
+onMounted(fetchTags);
+
+// Methods
+const addTag = () => router.push({ name: 'AddTag' });
+const editTag = (id) => router.push({ name: 'EditTag', params: { id } })
+
+const deleteTag = async (id) => {
+  if (!confirm('Are you sure you want to delete this tag ?')) return;
+
+  try {
+    const response = await axios.delete(`/api/tags/${id}`);
+    tags.value = tags.value.filter(tag => tag.id !== id);
+    toast.success(response.data.message);
+  } catch (error) {
+    console.error('Error deleting tag:', error);
+  }
+};
+</script>
+
 <template>
   <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -36,93 +81,26 @@
       </table>
     </div>
     <p v-else class="mt-4">No tags found.</p>
+
     <!-- Phân trang -->
     <nav aria-label="Page navigation" class="mt-4">
       <ul class="pagination justify-content-center">
         <li class="page-item" :class="{ 'disabled': currentPage === 1 }">
-          <a class="page-link" href="#" @click.prevent="currentPage--">Previous</a>
+          <a class="page-link" href="#" @click="prevPage">Previous</a>
         </li>
-        <li class="page-item" v-for="page in totalPages" :key="page" :class="{ 'active': currentPage === page }">
-          <a class="page-link" href="#" @click.prevent="changePage(page)">{{ page }}</a>
+        <li class="page-item" v-for="(page, index) in pagesToShow" :key="page"
+          :class="{ 'active': currentPage === page }">
+          <template v-if="typeof page === 'number'">
+            <a class="page-link" href="#" @click="() => changePage(page)">{{ page }}</a>
+          </template>
+          <template v-else>
+            <a class="page-link" href="#" @click="() => changePageToEllipsis(page, index)">...</a>
+          </template>
         </li>
         <li class="page-item" :class="{ 'disabled': currentPage === totalPages }">
-          <a class="page-link" href="#" @click.prevent="currentPage++">Next</a>
+          <a class="page-link" href="#" @click="nextPage">Next</a>
         </li>
       </ul>
     </nav>
   </div>
 </template>
-
-<script>
-import axios from 'axios';
-
-export default {
-  name: 'TagList',
-  data() {
-    return {
-      tags: [],
-      currentPage: 1, // trang hiện tại
-      tagsPerPage: 6,
-    };
-  },
-  computed: {
-    totalPages() {
-      return Math.ceil(this.tags.length / this.tagsPerPage);
-    },
-    displayedTags() {
-      const start = (this.currentPage - 1) * this.tagsPerPage;
-      const end = start + this.tagsPerPage;
-      return this.tags.slice(start, end);
-    }
-  },
-  async mounted() {
-    try {
-      const response = await axios.get('http://localhost:3000/tags');
-      this.tags = response.data;
-    } catch (error) {
-      console.error("Error fetching tags:", error);
-    }
-  },
-
-  methods: {
-    addTag() {
-      this.$router.push('/admin/tag-list/add-tag');
-    },
-    editTag(id) {
-      this.$router.push(`/admin/tag-list/edit-tag/${id}`);
-    },
-    changePage(page) {
-      if (page >= 1 && page <= this.totalPages) {
-        this.currentPage = page;
-      }
-    },
-    nextPage() {
-      if (this.currentPage < this.totalPages) {
-        this.currentPage++;
-      }
-    },
-    prevPage() {
-      if (this.currentPage > 1) {
-        this.currentPage--;
-      }
-    },
-    async deleteTag(id) {
-      try {
-        const confirmation = confirm('Are you sure you want to delete this tag ?');
-
-        if (confirmation) {
-          const response = await axios.delete(`http://localhost:3000/tags/${id}`);
-
-          if (response.data.success) {
-            this.tags = this.tags.filter(tag => tag.id !== id);
-          }
-          alert(response.data.message);
-        }
-      } catch (error) {
-        console.error('Error deleting tag:', error);
-        alert('Failed to delete tag. Please try again.');
-      }
-    }
-  }
-};
-</script>

@@ -50,7 +50,7 @@ onMounted(fetchSavedRecipes);
         <h2 class="text-center mb-4"
             style="color: #dbe2ef; font-weight: 700; letter-spacing: -0.5px; text-shadow: 2px 2px 5px rgba(0,0,0,0.1);">
             <i class="fas fa-star text-warning mr-2"></i>
-            Bookmark List
+            Bookmark list
         </h2>
 
         <div v-if="savedRecipes.length" class="row row-cols-1 row-cols-md-2 g-4">

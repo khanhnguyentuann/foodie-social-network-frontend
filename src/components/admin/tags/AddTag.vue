@@ -1,13 +1,37 @@
-<!-- eslint-disable vue/attributes-order -->
-<!-- eslint-disable vue/max-attributes-per-line -->
-<!-- eslint-disable vue/html-self-closing -->
-<!-- eslint-disable vue/html-indent -->
+<script setup>
+import { ref } from 'vue';
+import axios from 'axios';
+import { useRouter } from 'vue-router';
+import { useToast } from 'vue-toast-notification';
+import 'vue-toast-notification/dist/theme-sugar.css';
+
+const name = ref('');
+const router = useRouter();
+const toast = useToast();
+
+const goBack = () => router.back();
+
+const addHashtag = async () => {
+    try {
+        const response = await axios.post(`/api/tags`, { name: name.value });
+        if (response.status === 200) {
+            toast.success(response.data.message);
+        } else {
+            toast.error('Failed to add hashtag. Please try again.');
+        }
+    } catch (error) {
+        console.error("Error adding hashtag:", error);
+        toast.error('Error adding hashtag. Please try again.');
+    }
+};
+</script>
+
 <template>
     <div class="add-tag-container">
-        <button @click="goBack" class="btn btn-secondary mb-3">Quay lại</button>
+        <button @click="goBack" class="btn btn-secondary mb-3">Back</button>
 
         <div class="header-section">
-            <h3>Add Tag</h3>
+            <h3>Add tag</h3>
         </div>
         <div class="card">
             <div class="card-body">
@@ -17,61 +41,13 @@
                         <input id="tagName" v-model="name" type="text" class="form-control" required>
                     </div>
                     <div class="d-flex justify-content-end">
-                        <button type="submit" class="btn btn-primary">Add Tag</button>
+                        <button type="submit" class="btn btn-primary">Add</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </template>
-
-<script>
-import { ref } from 'vue';
-import axios from 'axios';
-import { useRouter } from 'vue-router';
-
-const ROUTES = {
-    addHashtag: `tags`
-};
-
-export default {
-    setup() {
-        const name = ref('');
-        const router = useRouter();
-
-        const apiURL = (relativePath) => {
-            return window.baseURL + '/' + relativePath;
-        };
-
-        const goBack = () => {
-            router.back();  // điều hướng quay lại trang trước
-        };
-
-        const addHashtag = async () => {
-            try {
-                const response = await axios.post(apiURL(ROUTES.addHashtag), {
-                    name: name.value,
-                });
-                if (response.status === 201) {
-                    alert('Hashtag added successfully');
-                } else {
-                    alert('Failed to add hashtag. Please try again.');
-                }
-            } catch (error) {
-                console.error("Error adding hashtag:", error);
-                alert('Error adding hashtag. Please try again.');
-            }
-        };
-
-        return {
-            name,
-            addHashtag,
-            apiURL,
-            goBack
-        };
-    },
-};
-</script>
   
 <style scoped>
 .add-tag-container {

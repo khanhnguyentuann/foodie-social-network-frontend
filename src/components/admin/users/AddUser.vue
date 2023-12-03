@@ -1,11 +1,51 @@
-<!-- eslint-disable vue/attributes-order -->
-<!-- eslint-disable vue/max-attributes-per-line -->
+<script setup>
+import { ref } from 'vue';
+import axios from 'axios';
+import { useRouter } from 'vue-router';
+import { useToast } from 'vue-toast-notification';
+import 'vue-toast-notification/dist/theme-sugar.css';
+
+const newUser = ref({
+  name: '',
+  email: '',
+  password: '',
+  role: 'user',
+});
+const toast = useToast();
+const router = useRouter();
+
+const goBack = () => router.go(-1);
+
+const addUser = async () => {
+  const formData = new FormData();
+
+  formData.append('name', newUser.value.name);
+  formData.append('email', newUser.value.email);
+  formData.append('password', newUser.value.password);
+  formData.append('role', newUser.value.role);
+
+  try {
+    const response = await axios.post('/api/users', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+
+    if (response.status === 201) {
+      toast.success('User added successfully');
+      router.push({ name: 'UserList' });
+    } else {
+      toast.error('Failed to add user. Please try again.');
+    }
+  } catch (error) {
+    console.error('Error adding user:', error);
+    toast.error('Error adding user. Please try again.');
+  }
+};
+</script>
+
 <template>
   <div class="add-user-container">
 
-    <button @click="goBack" class="btn btn-secondary mb-3">Quay lại</button>
+    <button @click="goBack" class="btn btn-secondary mb-3">Back</button>
     <div class="header-section">
-      <h3>Add A New User</h3>
+      <h3>Add new user</h3>
     </div>
     <div class="form-section">
       <form @submit.prevent="addUser">
@@ -29,66 +69,12 @@
           </select>
         </div>
         <div class="form-actions">
-          <button type="submit" class="btn btn-primary">Add User</button>
+          <button type="submit" class="btn btn-primary">Add</button>
         </div>
       </form>
     </div>
   </div>
 </template>
-
-<script>
-import axios from 'axios';
-
-export default {
-  name: 'AddUser',
-  data() {
-    return {
-      newUser: {
-        name: '',
-        email: '',
-        password: '',
-        role: 'user',
-      }
-    }
-  },
-  methods: {
-    goBack() {
-      this.$router.go(-1); // Điều hướng người dùng quay lại trang trước đó
-    },
-    async addUser() {
-      const formData = new FormData();
-
-      formData.append('name', this.newUser.name);
-      formData.append('email', this.newUser.email);
-      formData.append('password', this.newUser.password);
-      formData.append('role', this.newUser.role);
-
-      // Nếu có file ảnh được chọn, thêm vào formData
-      if (this.selectedFile) {
-        formData.append('avatar', this.selectedFile);
-      }
-
-      try {
-        const response = await axios.post('http://localhost:3000/users', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
-        });
-
-        if (response.status === 201) {
-          alert('User added successfully');
-          this.$router.push('/admin/user-list');  // Trả về user-list
-        } else {
-          alert('Failed to add user. Please try again.');
-        }
-      } catch (error) {
-        console.error('Error adding user:', error);
-        alert('Error adding user. Please try again.');
-      }
-    }
-  }
-}
-</script>
   
 <style scoped>
 .add-user-container {

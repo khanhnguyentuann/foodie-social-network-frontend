@@ -125,7 +125,7 @@ const routes = [
                 component: () => import('../components/admin/users/AddUser.vue')
             },
             {
-                path: 'user-list/edit-user/:id',
+                path: 'user-list/edit-user/:userId',
                 name: 'EditUser',
                 component: () => import('../components/admin/users/EditUser.vue')
             },
@@ -160,12 +160,12 @@ const routes = [
                 component: () => import('../components/admin/ingredients/EditIngredient.vue')
             },
             {
-                path: 'comments',
-                name: 'Comments',
-                component: () => import('../components/admin/comments/Comments.vue')
+                path: 'posts-containing-comments',
+                name: 'PostsContainingComments',
+                component: () => import('../components/admin/comments/PostsContainingComments.vue')
             },
             {
-                path: 'comments/:recipeId',
+                path: 'posts-containing-comments/:recipeId',
                 name: 'CommentList',
                 component: () => import('../components/admin/comments/CommentList.vue')
             },
@@ -180,10 +180,9 @@ const routes = [
                 component: () => import('../components/admin/recipes/RecipesList.vue')
             },
             {
-                path: 'recipes-list/:id',
+                path: 'recipes-list/:recipeId',
                 name: 'RecipesDetail',
-                component: () => import('../components/admin/recipes/RecipesDetail.vue'),
-                props: true
+                component: () => import('../components/admin/recipes/RecipesDetail.vue')
             }
         ]
     }

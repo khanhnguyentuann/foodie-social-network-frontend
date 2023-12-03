@@ -1,3 +1,68 @@
+<script setup>
+import { ref, onMounted } from 'vue';
+import axios from 'axios';
+
+const totalUsers = ref(0);
+const totalHashtags = ref(0);
+const totalPosts = ref(0);
+const totalIngredients = ref(0);
+const totalComments = ref(0);
+
+const fetchTotalUsers = async () => {
+    try {
+        const response = await axios.get(`/api/dashboard/total-users`);
+        totalUsers.value = response.data.totalUsers; // Cập nhật số lượng người dùng từ phản hồi JSON
+    } catch (error) {
+        console.error(error);
+    }
+};
+
+const fetchTotalHashtags = async () => {
+    try {
+        const response = await axios.get(`/api/dashboard/total-hashtags`);
+        totalHashtags.value = response.data.totalHashtags; // Cập nhật số lượng hashtag từ phản hồi JSON
+    } catch (error) {
+        console.error(error);
+    }
+};
+
+const fetchTotalPosts = async () => {
+    try {
+        const response = await axios.get(`/api/dashboard/total-posts`);
+        totalPosts.value = response.data.totalPosts;
+    } catch (error) {
+        console.error(error);
+    }
+};
+
+const fetchTotalIngredients = async () => {
+    try {
+        const response = await axios.get(`/api/dashboard/total-ingredients`);
+        totalIngredients.value = response.data.totalIngredients;
+    } catch (error) {
+        console.error(error);
+    }
+};
+
+const fetchTotalComments = async () => {
+    try {
+        const response = await axios.get(`/api/dashboard/total-comments`);
+        totalComments.value = response.data.totalComments;
+    } catch (error) {
+        console.error(error);
+    }
+};
+
+// Gọi hàm fetchTotalUsers khi component được mounted
+onMounted(() => {
+    fetchTotalUsers();
+    fetchTotalHashtags();
+    fetchTotalPosts();
+    fetchTotalIngredients();
+    fetchTotalComments();
+});
+</script>
+
 <template>
     <div class="content-header">
         <div class="container-fluid">
@@ -68,97 +133,6 @@
         </div>
     </section>
 </template>
-
-<script>
-import { ref, onMounted } from 'vue';
-import axios from 'axios';
-
-const ROUTES = {
-    totalUsers: `dashboard/total-users`,
-    totalHashtags: `dashboard/total-hashtags`,
-    totalPosts: `dashboard/total-posts`,
-    totalIngredients: `dashboard/total-ingredients`,
-    totalComments: `dashboard/total-comments`
-};
-
-export default {
-    name: "Dashboard",
-    setup() {
-        const totalUsers = ref(0);
-        const totalHashtags = ref(0);
-        const totalPosts = ref(0);
-        const totalIngredients = ref(0);
-        const totalComments = ref(0);
-
-        const apiURL = (relativePath) => {
-            return window.baseURL + '/' + relativePath;
-        };
-
-        const fetchTotalUsers = async () => {
-            try {
-                const response = await axios.get(apiURL(ROUTES.totalUsers));
-                totalUsers.value = response.data.totalUsers; // Cập nhật số lượng người dùng từ phản hồi JSON
-            } catch (error) {
-                console.error(error);
-            }
-        };
-
-        const fetchTotalHashtags = async () => {
-            try {
-                const response = await axios.get(apiURL(ROUTES.totalHashtags));
-                totalHashtags.value = response.data.totalHashtags; // Cập nhật số lượng hashtag từ phản hồi JSON
-            } catch (error) {
-                console.error(error);
-            }
-        };
-
-        const fetchTotalPosts = async () => {
-            try {
-                const response = await axios.get(apiURL(ROUTES.totalPosts));
-                totalPosts.value = response.data.totalPosts;
-            } catch (error) {
-                console.error(error);
-            }
-        };
-
-        const fetchTotalIngredients = async () => {
-            try {
-                const response = await axios.get(apiURL(ROUTES.totalIngredients));
-                totalIngredients.value = response.data.totalIngredients;
-            } catch (error) {
-                console.error(error);
-            }
-        };
-
-        const fetchTotalComments = async () => {
-            try {
-                const response = await axios.get(apiURL(ROUTES.totalComments));
-                totalComments.value = response.data.totalComments;
-            } catch (error) {
-                console.error(error);
-            }
-        };
-
-        // Gọi hàm fetchTotalUsers khi component được mounted
-        onMounted(() => {
-            fetchTotalUsers();
-            fetchTotalHashtags();
-            fetchTotalPosts();
-            fetchTotalIngredients();
-            fetchTotalComments();
-        });
-
-        return {
-            totalUsers,
-            totalHashtags,
-            totalPosts,
-            totalIngredients,
-            totalComments,
-            apiURL
-        };
-    }
-}
-</script>
 
 <style scoped>
 .content-header {

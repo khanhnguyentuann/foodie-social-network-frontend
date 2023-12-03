@@ -1,10 +1,57 @@
-<!-- eslint-disable vue/attributes-order -->
-<!-- eslint-disable vue/max-attributes-per-line -->
+<script setup>
+import axios from 'axios';
+import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { useToast } from 'vue-toast-notification';
+import 'vue-toast-notification/dist/theme-sugar.css';
+import makePaginationService from '../../../services/pagination.service';
+
+const toast = useToast();
+const router = useRouter();
+const ingredients = ref([]);
+const currentPage = ref(1);
+const ingredientsPerPage = 6;
+const totalPages = computed(() => Math.ceil(ingredients.value.length / ingredientsPerPage));
+
+const { changePage, nextPage, prevPage, calculatePagesToShow, changePageToEllipsis } = makePaginationService(currentPage, totalPages);
+const pagesToShow = computed(calculatePagesToShow);
+const displayedIngredients = computed(() => ingredients.value.slice((currentPage.value - 1) * ingredientsPerPage, currentPage.value * ingredientsPerPage));
+
+const fetchIngredients = async () => {
+  try {
+    const response = await axios.get('/api/ingredients');
+    ingredients.value = response.data;
+  } catch (error) {
+    console.error('Error fetching users:', error);
+  }
+};
+
+onMounted(fetchIngredients);
+
+const addIngredient = () => router.push({ name: 'AddIngredient' });
+const editIngredient = (id) => router.push({ name: 'EditIngredient', params: { id } });
+
+const deleteIngredient = async (id) => {
+  if (!confirm('Are you sure you want to delete this ingredient ?')) return;
+
+  try {
+    const response = await axios.delete(`/api/ingredients/${id}`);
+    if (response.status === 200) {
+      ingredients.value = ingredients.value.filter(ingredient => ingredient.id !== id);
+    }
+    toast.success(response.data.message);
+  } catch (error) {
+    console.error('Error deleting ingredient:', error);
+    toast.error(error.response.data.message);
+  }
+};
+</script>
+
 <template>
   <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h3>List of cooking ingredients</h3>
-      <button class="btn btn-primary" @click="addIngredient">Add Ingredient</button>
+      <button class="btn btn-primary" @click="addIngredient">Add ingredient</button>
     </div>
 
     <form class="d-flex justify-content-center md-form form-sm">
@@ -36,95 +83,26 @@
       </table>
     </div>
     <p v-else class="mt-4">No ingredients found.</p>
+
     <!-- Phân trang -->
     <nav aria-label="Page navigation" class="mt-4">
       <ul class="pagination justify-content-center">
         <li class="page-item" :class="{ 'disabled': currentPage === 1 }">
-          <a class="page-link" href="#" @click.prevent="currentPage--">Previous</a>
+          <a class="page-link" href="#" @click="prevPage">Previous</a>
         </li>
-        <li class="page-item" v-for="page in totalPages" :key="page" :class="{ 'active': currentPage === page }">
-          <a class="page-link" href="#" @click.prevent="changePage(page)">{{ page }}</a>
+        <li class="page-item" v-for="(page, index) in pagesToShow" :key="page"
+          :class="{ 'active': currentPage === page }">
+          <template v-if="typeof page === 'number'">
+            <a class="page-link" href="#" @click="() => changePage(page)">{{ page }}</a>
+          </template>
+          <template v-else>
+            <a class="page-link" href="#" @click="() => changePageToEllipsis(page, index)">...</a>
+          </template>
         </li>
         <li class="page-item" :class="{ 'disabled': currentPage === totalPages }">
-          <a class="page-link" href="#" @click.prevent="currentPage++">Next</a>
+          <a class="page-link" href="#" @click="nextPage">Next</a>
         </li>
       </ul>
     </nav>
   </div>
 </template>
-
-<script>
-import axios from 'axios';
-
-export default {
-  name: 'IngredientList',
-  data() {
-    return {
-      ingredients: [],
-      currentPage: 1, // trang hiện tại
-      ingredientsPerPage: 6,
-    };
-  },
-  computed: {
-    totalPages() {
-      return Math.ceil(this.ingredients.length / this.ingredientsPerPage);
-    },
-    displayedIngredients() {
-      const start = (this.currentPage - 1) * this.ingredientsPerPage;
-      const end = start + this.ingredientsPerPage;
-      return this.ingredients.slice(start, end);
-    }
-  },
-
-  async mounted() {
-    try {
-      const response = await axios.get('http://localhost:3000/ingredients');
-      this.ingredients = response.data;
-    } catch (error) {
-      console.error("Error fetching ingredients:", error);
-    }
-  },
-
-  methods: {
-    addIngredient() {
-      this.$router.push('/admin/ingredient-list/add-ingredient');
-    },
-    editIngredient(id) {
-      this.$router.push(`/admin/ingredient-list/edit-ingredient/${id}`);
-    },
-    changePage(page) {
-      if (page >= 1 && page <= this.totalPages) {
-        this.currentPage = page;
-      }
-    },
-    nextPage() {
-      if (this.currentPage < this.totalPages) {
-        this.currentPage++;
-      }
-    },
-    prevPage() {
-      if (this.currentPage > 1) {
-        this.currentPage--;
-      }
-    },
-    async deleteIngredient(id) {
-      try {
-        const confirmation = confirm('Are you sure you want to delete this ingredient ?');
-
-        if (confirmation) {
-          const response = await axios.delete(`http://localhost:3000/ingredients/${id}`);
-
-          if (response.data.success) {
-            this.ingredients = this.ingredients.filter(ingredient => ingredient.id !== id);
-          }
-          alert(response.data.message);
-        }
-      } catch (error) {
-        console.error('Error deleting ingredient:', error);
-        alert('Failed to delete ingredient. Please try again.');
-      }
-    }
-
-  }
-};
-</script>

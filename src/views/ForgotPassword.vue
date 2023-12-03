@@ -2,6 +2,10 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
+import { useToast } from 'vue-toast-notification';
+import 'vue-toast-notification/dist/theme-sugar.css';
+
+const toast = useToast();
 
 const email = ref('');
 const otp = ref('');
@@ -20,16 +24,12 @@ const redirectToLogin = () => {
     router.push({ name: 'Login' });
 };
 
-const showAlert = (message) => {
-    alert(message);
-};
-
 const handleApiResponse = (response) => {
     if (response.status === 200) {
-        showAlert(response.data.message);
+        toast.success(response.data.message);
     } else {
         console.error('API error:', response.data);
-        showAlert(response.data.error || 'An error occurred. Please try again.');
+        toast.error(response.data.error);
     }
 };
 
@@ -44,29 +44,32 @@ const isValidPassword = (password) => {
 };
 
 const sendOTP = async () => {
-    try {
-        const response = await axios.post('api/auth/forgot-password', {
-            email: email.value
-        });
+    if (email.value != '') {
+        try {
+            const response = await axios.post('api/auth/forgot-password', {
+                email: email.value
+            });
 
-        if (response.status === 200) {
-            showAlert(response.data.message);
+            if (response.status === 200) {
+                toast.success(response.data.message);
+                otpSent.value = true;
+                intervalId.value = setInterval(() => {
+                    countdown.value -= 1;
+                    if (countdown.value <= 0) {
+                        clearInterval(intervalId.value);
+                        otpSent.value = false;
+                    }
+                }, 1000); // giảm 1 giây mỗi lần
 
-            otpSent.value = true;
-            intervalId.value = setInterval(() => {
-                countdown.value -= 1;
-                if (countdown.value <= 0) {
-                    clearInterval(intervalId.value);
-                    otpSent.value = false;
-                }
-            }, 1000); // giảm 1 giây mỗi lần
-
-        } else {
-            showAlert(response.data.message);
+            } else {
+                toast.error(response.data.message);
+            }
+        } catch (error) {
+            console.error('Error sending otp:', error);
+            toast.error('An error occurred. Please try again.');
         }
-    } catch (error) {
-        console.error('Error sending otp:', error);
-        showAlert('An error occurred. Please try again.');
+    } else {
+        toast.error('Please enter an email!');
     }
 };
 
@@ -78,15 +81,15 @@ const verifyOTP = async () => {
         });
 
         if (response.status === 200) {
-            showAlert(response.data.message);
+            toast.success(response.data.message);
             showOTPIsVisible.value = false; // Ẩn form
             resetToken.value = response.data.resetToken; // Lấy resetToken từ phản hồi JSON
         } else {
-            showAlert(response.data.message);
+            toast.error(response.data.message);
         }
     } catch (error) {
         console.error('Error verifying OTP:', error);
-        showAlert('An error occurred. Please try again.');
+        toast.error('An error occurred. Please try again.');
     }
 };
 
@@ -110,7 +113,7 @@ const resetPassword = async () => {
         }
     } catch (error) {
         console.error('Error resetting password:', error);
-        showAlert('An error occurred. Please try again.');
+        toast.error('An error occurred. Please try again.');
     }
 };
 </script>

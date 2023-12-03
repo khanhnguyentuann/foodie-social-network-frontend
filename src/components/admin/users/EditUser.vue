@@ -2,7 +2,10 @@
 import { ref, onMounted, reactive } from 'vue';
 import axios from 'axios';
 import { useRouter, useRoute } from 'vue-router';
+import { useToast } from 'vue-toast-notification';
+import 'vue-toast-notification/dist/theme-sugar.css';
 
+const toast = useToast();
 const router = useRouter();
 const route = useRoute();
 
@@ -19,9 +22,12 @@ const avatarPreview = ref(null);
 
 onMounted(async () => {
     try {
-        const userId = route.params.id;
+        const userId = route.params.userId;
         const response = await axios.get(`/api/users/${userId}`);
         Object.assign(user, response.data);
+        if (user.avatar) {
+            avatarPreview.value = '/api/' + user.avatar;
+        }
         user.password = null;
     } catch (error) {
         console.error('Error fetching user:', error);
@@ -43,7 +49,7 @@ const uploadAvatar = (event) => {
 
 const updateUser = async () => {
     try {
-        const userId = route.params.id;
+        const userId = route.params.userId;
         const formData = new FormData();
 
         if (!user.password || user.password.trim() === '') {
@@ -58,13 +64,13 @@ const updateUser = async () => {
 
         const response = await axios.put(`/api/users/${userId}`, formData, config);
 
-        if (response.data.message === 'User updated successfully') {
-            alert('User updated successfully');
-            router.push('/admin/user-list');
+        if (response.status == 200) {
+            toast.success('User updayed successfully!');
+            router.push({ name: 'UserList' });
         }
     } catch (error) {
         console.error('Error updating user:', error);
-        alert('Error updating user. Please try again.');
+        toast.error('Error updating user. Please try again.');
     }
 };
 
@@ -73,9 +79,9 @@ const goBack = () => router.go(-1);
 
 <template>
     <div class="edit-user-container">
-        <button @click="goBack" class="btn btn-secondary mb-3">Quay lại</button>
+        <button @click="goBack" class="btn btn-secondary mb-3">Back</button>
         <div class="header-section">
-            <h3>Update For This User</h3>
+            <h3>Update this user</h3>
         </div>
         <div class="form-section">
             <form @submit.prevent="updateUser" class="row">
@@ -85,7 +91,7 @@ const goBack = () => router.go(-1);
                         <input id="userAvatar" ref="avatarInput" type="file" class="form-control" @change="uploadAvatar" />
                     </div>
                     <div class="avatar-preview" v-if="avatarPreview">
-                        <img :src="avatarPreview" alt="Avatar Preview">
+                        <img :src="avatarPreview" alt="Avatar Preview" height="200" width="200" class="rounded-circle">
                     </div>
                 </div>
 
@@ -110,7 +116,7 @@ const goBack = () => router.go(-1);
                         </select>
                     </div>
                     <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">Update User</button>
+                        <button type="submit" class="btn btn-primary">Update</button>
                     </div>
                 </div>
             </form>

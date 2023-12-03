@@ -226,7 +226,7 @@ onBeforeUnmount(() => {
     <div class="container mt-3">
         <div class="card" style="background-color: rgba(255, 255, 255, 0.12);">
             <div class="card-header text-center">
-                <strong>Create Recipe</strong>
+                <strong>Create post</strong>
             </div>
             <div class="card-body">
                 <form @submit.prevent="submitRecipe">
@@ -346,7 +346,7 @@ onBeforeUnmount(() => {
 
                     <div class="row">
                         <div class="col-9">
-                            <button type="submit" class="btn btn-primary w-100">Post Recipe</button>
+                            <button type="submit" class="btn btn-primary w-100">Post</button>
                         </div>
                         <div v-if="isLoading" class="text-center col-3">
                             <div class="spinner-border" role="status">

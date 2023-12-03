@@ -35,7 +35,7 @@ const goToUserProfile = (id) => {
 <template>
     <div class="container mt-3">
         <div class="text-center mb-4">
-            <h2>All Friends</h2>
+            <h2>All friends</h2>
 
             <div class="form">
                 <i class="fa fa-search"></i>
